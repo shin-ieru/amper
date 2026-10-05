@@ -4,7 +4,7 @@ import {
   createEngine,
   resolveSettings,
   type ChemlyEngine,
-  type ChemlySettings,
+  type ChemlySettingsInput,
   type ChemlySuggestion,
   type ControllerEvent,
   type Disposable,
@@ -124,7 +124,7 @@ export class VirtualEditor implements EditorAdapter {
     if (previous) {
       this.text = previous.text;
       this.caret = previous.caret;
-      this.emitInput({ type: "other" });
+      this.emitInput({ type: "history" });
     }
     return this;
   }
@@ -152,7 +152,7 @@ export class VirtualEditor implements EditorAdapter {
 
 const sharedEngine: ChemlyEngine = createEngine();
 
-export function setup(settings: Partial<ChemlySettings> = {}, options: { interceptKeys?: boolean } = {}) {
+export function setup(settings: ChemlySettingsInput = {}, options: { interceptKeys?: boolean } = {}) {
   const editor = new VirtualEditor(options);
   const current = { settings: resolveSettings(settings) };
   const session = new ChemlySession(sharedEngine, () => current.settings);

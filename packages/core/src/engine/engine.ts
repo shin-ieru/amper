@@ -1,5 +1,6 @@
 import { compileCustomRules, createDefaultRegistry, normalizePhrase, type CustomRule, type RuleRegistry } from "@chemly/rules";
 import { confidenceBand, SUGGEST_THRESHOLD } from "../confidence/policy";
+import { TOGGLEABLE_CATEGORIES } from "../types";
 import type {
   ChemlySettings,
   ChemlySuggestion,
@@ -11,7 +12,9 @@ import type {
   ToggleableCategory,
 } from "../types";
 import { completePhrase, fuzzyPhrase } from "./complete";
-import { recognizeFormula } from "./recognizers/formula";
+import { recognizeElectronConfiguration } from "./recognizers/electron";
+import { recognizeReaction } from "./recognizers/reaction";
+import { recognizeSpecies } from "./recognizers/species";
 import { recognizeNamed } from "./recognizers/named";
 import { CONTEXT_CHARS_BEFORE, lineStart } from "./text";
 
@@ -19,6 +22,11 @@ export interface EvaluateInput {
   /** Text before the caret, excluding the boundary character that triggered evaluation. */
   textBefore: string;
   trigger: ChemlyTrigger;
+  /**
+   * Tokens the user explicitly reverted (Backspace restore, Undo). Multi-token
+   * rewrites (reactions, configurations) leave them exactly as typed.
+   */
+  frozen?: ReadonlySet<string>;
 }
 
 export interface ChemlyEngine {
@@ -32,6 +40,8 @@ export interface ChemlyEngine {
 export interface EngineOptions {
   registry?: RuleRegistry;
 }
+
+const EMPTY: ReadonlySet<string> = new Set();
 
 type Clock = { now(): number };
 const clock: Clock = (globalThis as { performance?: Clock }).performance ?? Date;
@@ -71,10 +81,13 @@ export function createEngine(options: EngineOptions = {}): ChemlyEngine {
     const registry = registryFor(settings);
     const enabled = settings.categories;
     const never = new Set(settings.neverConvert.map(normalizePhrase));
+    const frozen = input.frozen ?? EMPTY;
 
     const all = [
       ...recognizeNamed(text, from, registry, rejections),
-      ...(enabled.formula ? recognizeFormula(text, from, settings.mode, rejections) : []),
+      ...recognizeSpecies(text, from, settings.mode, rejections),
+      ...(enabled.electron ? recognizeElectronConfiguration(text, from, settings.mode, frozen) : []),
+      ...(enabled.reaction ? recognizeReaction(text, from, settings.mode, rejections, frozen) : []),
     ];
     const recognitions = all
       .filter((r) => {
@@ -90,8 +103,20 @@ export function createEngine(options: EngineOptions = {}): ChemlyEngine {
       .sort((a, b) => a.priority - b.priority || b.end - b.start - (a.end - a.start) || b.confidence - a.confidence);
 
     const best = recognitions[0];
-    if (best && settings.autoConvert && confidenceBand(best.confidence) === "auto") {
-      return { action: "autocorrect", recognition: best, debug: debug(recognitions) };
+    if (best && settings.autoConvert) {
+      if (confidenceBand(best.confidence) === "auto") {
+        return { action: "autocorrect", recognition: best, debug: debug(recognitions) };
+      }
+      // An uncertain claim over a larger span (a reaction with one ambiguous species)
+      // must not block a certain conversion of a smaller span inside it (the token just typed).
+      // Only structural recognisers yield this way; a custom or named rule keeps its priority (spec §54).
+      const structural = best.recognizer === "reaction" || best.recognizer === "electron";
+      const inner = structural
+        ? recognitions.find(
+            (r) => confidenceBand(r.confidence) === "auto" && r.start >= best.start && r.end <= best.end && r.end - r.start < best.end - best.start,
+          )
+        : undefined;
+      if (inner) return { action: "autocorrect", recognition: inner, debug: debug(recognitions) };
     }
 
     const suggestions = dedupe(
@@ -117,7 +142,7 @@ export function createEngine(options: EngineOptions = {}): ChemlyEngine {
 }
 
 function isToggleable(category: string): category is ToggleableCategory {
-  return category === "greek" || category === "symbol" || category === "formula" || category === "custom";
+  return (TOGGLEABLE_CATEGORIES as readonly string[]).includes(category);
 }
 
 function shift(r: Recognition, offset: number): Recognition {
@@ -132,7 +157,7 @@ export function recognitionToSuggestion(r: Recognition): ChemlySuggestion {
   return {
     ruleId: r.ruleId,
     category: r.category,
-    label: r.recognizer === "formula" ? r.replacement : r.label,
+    label: r.label,
     original: r.original,
     replacement: r.replacement,
     confidence: r.confidence,

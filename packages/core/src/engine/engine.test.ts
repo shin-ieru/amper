@@ -142,6 +142,20 @@ describe("robustness and performance (spec §44, §52)", () => {
   });
 });
 
+describe("Phase 2 performance (spec §44)", () => {
+  it("stays under 5 ms median on a full-window reaction line", () => {
+    const line = ("Fe3+ + SO4^2- + Ca(OH)2 + " .repeat(12)).slice(0, 220) + " -> CuSO4·5H2O(aq)";
+    const samples: number[] = [];
+    for (let i = 0; i < 300; i++) {
+      const started = performance.now();
+      evaluate(line, "chemistry");
+      samples.push(performance.now() - started);
+    }
+    samples.sort((a, b) => a - b);
+    expect(samples[samples.length >> 1]).toBeLessThan(5);
+  });
+});
+
 describe("architecture (ADR-001)", () => {
   it("engine packages contain no DOM or Google Docs references", () => {
     const roots = ["core", "chemistry", "rules", "renderer"].map((p) => join(__dirname, "..", "..", "..", p, "src"));

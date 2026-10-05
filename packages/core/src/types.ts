@@ -12,13 +12,33 @@ export type ChemlyCategory =
   | "isotope"
   | "reaction"
   | "unit"
+  | "electron"
   | "custom"
   | "other";
 
 export type ChemlyTrigger = "space" | "enter" | "tab" | "punctuation" | "shortcut" | "manual";
 
-/** Categories that can be switched off in settings today; more arrive with Phase 2. */
-export type ToggleableCategory = "greek" | "symbol" | "formula" | "custom";
+/** Categories that can be switched off in settings (spec §49). */
+export type ToggleableCategory =
+  | "greek"
+  | "symbol"
+  | "formula"
+  | "charge"
+  | "isotope"
+  | "reaction"
+  | "electron"
+  | "custom";
+
+export const TOGGLEABLE_CATEGORIES: readonly ToggleableCategory[] = [
+  "greek",
+  "symbol",
+  "formula",
+  "charge",
+  "isotope",
+  "reaction",
+  "electron",
+  "custom",
+];
 
 export interface ChemlySettings {
   enabled: boolean;
@@ -39,12 +59,17 @@ export const DEFAULT_SETTINGS: ChemlySettings = Object.freeze({
   autoConvert: true,
   autocomplete: true,
   backspaceRestore: true,
-  categories: Object.freeze({ greek: true, symbol: true, formula: true, custom: true }),
+  categories: Object.freeze(Object.fromEntries(TOGGLEABLE_CATEGORIES.map((c) => [c, true])) as Record<ToggleableCategory, boolean>),
   neverConvert: [],
   customRules: [],
 }) as ChemlySettings;
 
-export function resolveSettings(partial: Partial<ChemlySettings> = {}): ChemlySettings {
+/** Settings as callers and storage provide them: any subset, including a subset of categories. */
+export type ChemlySettingsInput = Partial<Omit<ChemlySettings, "categories">> & {
+  categories?: Partial<Record<ToggleableCategory, boolean>>;
+};
+
+export function resolveSettings(partial: ChemlySettingsInput = {}): ChemlySettings {
   return {
     ...DEFAULT_SETTINGS,
     ...partial,
@@ -56,7 +81,7 @@ export function resolveSettings(partial: Partial<ChemlySettings> = {}): ChemlySe
 
 /** One recogniser's claim over a span of the text before the boundary. */
 export interface Recognition {
-  recognizer: "named" | "formula";
+  recognizer: "named" | "formula" | "electron" | "reaction";
   ruleId: string;
   category: ChemlyCategory;
   /** Offsets into the evaluated text (the text before the boundary). */

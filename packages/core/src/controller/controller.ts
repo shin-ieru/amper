@@ -77,6 +77,10 @@ export class ChemlyController {
       outcome = this.session.textTyped(this.context());
     } else if (event.type === "deleteBackward" && !this.adapter.capabilities.interceptKeys) {
       outcome = this.session.backspaceApplied(this.context());
+    } else if (event.type === "history") {
+      this.session.historyChanged(event.textBeforeSelectionEnd ?? this.context());
+      this.emit({ type: "reset", reason: "history" });
+      outcome = { kind: "none" };
     } else {
       this.session.reset();
       this.emit({ type: "reset", reason: event.type === "insertText" ? "multi-character insert" : event.type });

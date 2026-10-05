@@ -72,6 +72,12 @@ export class TextareaAdapter implements EditorAdapter {
         case "deleteContentBackward":
           handler({ type: "deleteBackward" });
           break;
+        case "historyUndo":
+        case "historyRedo": {
+          const end = this.el.selectionEnd;
+          handler({ type: "history", textBeforeSelectionEnd: this.el.value.slice(Math.max(0, end - 256), end) });
+          break;
+        }
         default:
           // Paste, cut, undo/redo, drag-drop, composition commits, word deletes.
           handler({ type: "other" });

@@ -14,10 +14,11 @@ export {
 export {
   AUTO_THRESHOLD,
   confidenceBand,
-  scoreFormula,
+  scoreSpecies,
   SUGGEST_CAP,
   SUGGEST_THRESHOLD,
   type ConfidenceBand,
+  type SpeciesContext,
 } from "./confidence/policy";
 export { ACRONYM_STEMS, acronymStem, COPULAS, LABEL_WORDS, NEGATIVE_LEXICON, nonProseReason } from "./confidence/context";
 export { ChemlySession, type SessionOptions, type SessionOutcome } from "./history/session";

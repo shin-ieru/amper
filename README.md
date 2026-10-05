@@ -1,6 +1,6 @@
 # Chemly
 
-Chemistry autocorrect and autocomplete for Google Docs. Type `H2SO4`, `capital sigma` or `equilibrium arrow` and Chemly writes `H₂SO₄`, `Σ`, `⇌` as ordinary editable text. Press Backspace straight after a conversion to get back exactly what you typed.
+Chemistry autocorrect and autocomplete for Google Docs. Type `H2SO4`, `SO4^2-`, `capital sigma` or `2H2 + O2 -> 2H2O` and Chemly writes `H₂SO₄`, `SO₄²⁻`, `Σ`, `2H₂ + O₂ → 2H₂O` as ordinary editable text. Press Backspace straight after a conversion to get back exactly what you typed.
 
 Everything runs locally and deterministically. No document text leaves the device.
 
@@ -14,7 +14,8 @@ Everything runs locally and deterministically. No document text leaves the devic
 | Autocomplete, fuzzy suggestions, never-convert, custom rules, category toggles | Done |
 | Playground harness with debug panel | Done |
 | Google Docs spike | **Viable with documented limitations; edit-mode insertion still to be confirmed.** See [docs/google-docs-spike.md](docs/google-docs-spike.md) |
-| Charges, states, hydrates, isotopes, reactions, ASCII arrows | Next (Phase 2) |
+| Charges (implicit + caret), states, hydrates, isotopes, electron configurations, ASCII arrows, full reactions | Done (Phase 2); see [docs/parser.md](docs/parser.md) |
+| Production Google Docs integration (Phase 3) | Blocked on the manual edit-mode check in the spike doc |
 
 ## Requirements
 
@@ -43,7 +44,7 @@ The extension is a **spike prototype**. Before relying on it, run the manual pro
 ## Layout
 
 ```
-packages/chemistry   elements, formula lexer/parser/AST           (no DOM)
+packages/chemistry   elements, species/reaction/configuration parsers, AST (no DOM)
 packages/renderer    AST → Unicode / ASCII                         (no DOM)
 packages/rules       Greek, symbols, script commands, registry     (no DOM)
 packages/core        engine, confidence, autocomplete, session, controller, adapter contract (no DOM)
@@ -51,7 +52,7 @@ packages/shared-ui   suggestion popup (shadow DOM)
 apps/playground      textarea harness + debug panel (development only)
 apps/google-docs-extension   MV3 extension: Docs adapter, MAIN-world bridge, popup
 tests/integration    full typing flows on an in-memory editor
-tests/corpus         300+ positive formulas, negative tokens and sentences
+tests/corpus         formula, ion, state, hydrate, isotope, configuration and reaction corpora + negative corpora
 tests/e2e            Playwright tests of the playground
 docs/                architecture, parser, rules, spike, ADRs; docs/spike/ holds the live-Docs probes
 ```
@@ -59,7 +60,7 @@ docs/                architecture, parser, rules, spike, ADRs; docs/spike/ holds
 ## Docs
 
 - [Architecture](docs/architecture.md)
-- [Formula parser](docs/parser.md)
+- [Parsers (species, reactions, configurations)](docs/parser.md)
 - [Named rules](docs/rules.md)
 - [Google Docs spike](docs/google-docs-spike.md)
 - ADRs: [001](docs/adr/ADR-001-core-independent-of-docs.md) · [002](docs/adr/ADR-002-unicode-first-rendering.md) · [003](docs/adr/ADR-003-google-docs-integration.md) · [004](docs/adr/ADR-004-deterministic-local-engine.md) · [005](docs/adr/ADR-005-formula-parser.md)

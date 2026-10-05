@@ -4,7 +4,12 @@ import type { ChemlySuggestion, Disposable, TailRewrite } from "../types";
 export type EditorInputEvent =
   | { type: "insertText"; text: string }
   | { type: "deleteBackward" }
-  /** Paste, cut, undo/redo, formatting, or anything Chemly cannot model: resets one-shot state. */
+  /**
+   * Native undo/redo. Undoing a pending Chemly conversion counts as the user rejecting it.
+   * Hosts that select the restored text (browsers do) pass the text before the selection's end.
+   */
+  | { type: "history"; textBeforeSelectionEnd?: string }
+  /** Paste, cut, formatting, or anything Chemly cannot model: resets one-shot state. */
   | { type: "other" };
 
 export interface EditorKeyEvent {

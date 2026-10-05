@@ -1,13 +1,51 @@
-export { ELEMENT_SYMBOLS, isElementSymbol, type ElementSymbol } from "./elements";
-export type {
-  Charge,
-  ElementComponent,
-  FormulaComponent,
-  FormulaNode,
-  GroupComponent,
-  PhysicalState,
-  Span,
+export { atomicNumber, ELEMENT_SYMBOLS, isElementSymbol, type ElementSymbol } from "./elements";
+export {
+  cloneFormula,
+  type Adduct,
+  type Charge,
+  type ChargeNotation,
+  type ElementComponent,
+  type FormulaComponent,
+  type FormulaNode,
+  type GroupComponent,
+  type PhysicalState,
+  type Span,
 } from "./formulas/ast";
-export { lexFormula, MAX_NUMBER_DIGITS, type FormulaToken, type LexError, type LexResult } from "./formulas/lexer";
-export { parseFormula, MAX_FORMULA_LENGTH, MAX_GROUP_DEPTH, type ParseError, type ParseResult } from "./formulas/parser";
+export {
+  lexFormula,
+  MAX_NUMBER_DIGITS,
+  type FormulaToken,
+  type LexError,
+  type LexResult,
+  type NumberScript,
+} from "./formulas/lexer";
+export {
+  MAX_CHARGE,
+  MAX_FORMULA_LENGTH,
+  MAX_GROUP_DEPTH,
+  MAX_MASS_NUMBER,
+  parseFormula,
+  type ParseError,
+  type ParseResult,
+} from "./formulas/parser";
 export { analyzeFormula, type FormulaFeatures } from "./formulas/features";
+export {
+  AMBIGUOUS_BARE_SIGN_SYMBOLS,
+  interpretCharge,
+  KNOWN_HOMONUCLEAR_IONS,
+  TYPICAL_ION_CHARGES,
+  type ChargeInterpretation,
+  type ChargeReading,
+  type ReadingKind,
+} from "./formulas/charges";
+export { parseConfigToken, type ConfigToken, type Orbital, type Subshell } from "./electron-config";
+export {
+  parseArrowToken,
+  parseElectronToken,
+  parseReactionSuffix,
+  type ArrowInfo,
+  type ArrowKind,
+  type ParsedReaction,
+  type ReactionItem,
+  type TextToken,
+} from "./reactions";

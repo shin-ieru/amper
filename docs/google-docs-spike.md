@@ -133,6 +133,37 @@ The tester needs a Google account, about 15 minutes, and Chrome 111 or later.
 
 Record the results, plus the popup's **Run environment probe** output, in this file under a new "Edit-mode results" heading, and update the conclusion.
 
+## Edit-mode results
+
+_Pending: fill in after running the manual protocol above. Then update the conclusion and ADR-003._
+
+| Field | Value |
+|---|---|
+| Date / tester | |
+| Chrome version | |
+| Insertion strategy that worked (keypress / paste / neither) | |
+| Undo steps per conversion (T3) | |
+| Popup probe output | (paste JSON) |
+
+| ID | Result (pass / fail / partial) | Notes |
+|---|---|---|
+| T1 | | |
+| T2 | | |
+| T3 | | |
+| T4 | | |
+| T5 | | |
+| T6 | | |
+| T7 | | |
+| T8 | | |
+| T9 | | |
+| T10 | | |
+| T11 | | |
+| T12 | | |
+| T13 | | |
+| T14 | | |
+| T15 (Phase 2) type `SO4^2- ` and `2H2 + O2 -> 2H2O ` in Chemistry Mode | | |
+| T16 (Phase 2) Cmd/Ctrl+Z after a reaction conversion, then keep typing the reaction | | Docs resets Chemly's buffer on Undo, so the reverted text is never revisited |
+
 ## Alternatives considered
 
 | Option | Verdict |

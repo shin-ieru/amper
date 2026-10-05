@@ -127,3 +127,68 @@ test.describe("settings and debug", () => {
     await expect(editor).toHaveValue("CO2 CO2 ");
   });
 });
+
+test.describe("Phase 2 in a real browser (production build)", () => {
+  const cases: [string, string][] = [
+    ["Fe3+ ", "Fe³⁺ "],
+    ["SO4^2- ", "SO₄²⁻ "],
+    ["NH4+ ", "NH₄⁺ "],
+    ["[Fe(CN)6]3- ", "[Fe(CN)₆]³⁻ "],
+    ["H2O(l) ", "H₂O(l) "],
+    ["CO2(g) ", "CO₂(g) "],
+    ["CuSO4·5H2O ", "CuSO₄·5H₂O "],
+    ["^14C ", "¹⁴C "],
+    ["^235U ", "²³⁵U "],
+    ["1s2 2s2 2p6 ", "1s² 2s² 2p⁶ "],
+    ["2H2 + O2 -> 2H2O ", "2H₂ + O₂ → 2H₂O "],
+    ["N2 + 3H2 <=> 2NH3 ", "N₂ + 3H₂ ⇌ 2NH₃ "],
+  ];
+  for (const [input, expected] of cases) {
+    test(`${input.trim()} → ${expected.trim()}`, async ({ page }) => {
+      const editor = await open(page, "chemistry");
+      await page.keyboard.type(input);
+      await expect(editor).toHaveValue(expected);
+    });
+  }
+
+  test("Backspace restores a whole-reaction rewrite", async ({ page }) => {
+    const editor = await open(page, "chemistry");
+    await page.keyboard.type("N2 + 3H2 <=> 2NH3 ");
+    await page.keyboard.press("Backspace");
+    await expect(editor).toHaveValue("N2 + 3H₂ ⇌ 2NH3");
+  });
+
+  test("native Undo reverts a charge conversion and a reaction rewrite one step each", async ({ page }) => {
+    const editor = await open(page, "chemistry");
+    await page.keyboard.type("SO4^2- ");
+    await page.keyboard.press(`${modKey}+z`);
+    await expect(editor).toHaveValue("SO4^2- ");
+    // Native undo leaves the restored text selected; put the caret at the end explicitly
+    // (End does not collapse a textarea selection on macOS).
+    await editor.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(el.value.length, el.value.length));
+    await page.keyboard.type("+ Ba2+ -> BaSO4 ");
+    await expect(editor).toHaveValue("SO4^2- + Ba²⁺ → BaSO₄ ");
+    await page.keyboard.press(`${modKey}+z`);
+    await expect(editor).toHaveValue("SO4^2- + Ba²⁺ → BaSO4 ");
+  });
+
+  test("O2+ is offered, not converted; caret syntax converts", async ({ page }) => {
+    const editor = await open(page, "chemistry");
+    await page.keyboard.type("O2+ ");
+    await expect(editor).toHaveValue("O2+ ");
+    await expect(suggestionItems(page)).toHaveCount(2);
+    await expect(suggestionItems(page).first()).toContainText("O₂⁺");
+    await page.keyboard.press("Escape");
+    await page.keyboard.type("O2^+ ");
+    await expect(editor).toHaveValue("O2+ O₂⁺ ");
+  });
+
+  test("Standard Mode offers the whole reaction; Tab applies it", async ({ page }) => {
+    const editor = await open(page);
+    await page.keyboard.type("2H2 + O2 -> 2H2O ");
+    await expect(editor).toHaveValue("2H2 + O2 -> 2H2O ");
+    await expect(suggestionItems(page).first()).toContainText("2H₂ + O₂ → 2H₂O");
+    await page.keyboard.press("Tab");
+    await expect(editor).toHaveValue("2H₂ + O₂ → 2H₂O ");
+  });
+});

@@ -54,6 +54,8 @@ export class ChemlySession {
   private suggestions: PendingSuggestions | undefined;
   private composing = false;
   private readonly restoreCounts = new Map<string, number>();
+  /** Tokens the user reverted this session; bounded so a long session cannot grow it without limit. */
+  private readonly rejected = new Set<string>();
   private readonly now: () => number;
   private readonly demoteAfter: number;
 
@@ -89,11 +91,14 @@ export class ChemlySession {
     if (this.composing || !trigger || !textBeforeCaret.endsWith(boundary)) return { kind: "none" };
 
     const textBefore = textBeforeCaret.slice(0, -boundary.length);
-    const decision = this.engine.evaluate({ textBefore, trigger }, this.settings());
+    const decision = this.engine.evaluate({ textBefore, trigger, frozen: this.rejected }, this.settings());
 
     if (decision.action === "autocorrect") {
       const r = decision.recognition;
-      if (suppressed !== undefined && r.original === suppressed && r.end <= textBefore.length) {
+      // Nothing may convert a span overlapping text the user just restored, even a narrower one
+      // (after restoring a reaction, its last token must not be re-converted on its own).
+      const restoredFrom = suppressed !== undefined && textBefore.endsWith(suppressed) ? textBefore.length - suppressed.length : Infinity;
+      if (r.end > restoredFrom) {
         decision.debug.rejections.push({ recognizer: r.recognizer, candidate: r.original, reason: "just restored by Backspace" });
         return { kind: "none", decision: { action: "none", debug: decision.debug } };
       }
@@ -176,6 +181,16 @@ export class ChemlySession {
     return { kind: "rewrite", rewrite: { deleteCount: removedTail.length, insertText: tx.insertedTail }, transaction: tx };
   }
 
+  /**
+   * Native undo/redo happened. If it undid the pending conversion (the removed
+   * text is back before the caret), treat that as the user rejecting it.
+   */
+  historyChanged(textBeforeCaret: string): void {
+    const tx = this.pending;
+    if (tx && textBeforeCaret.endsWith(tx.removedTail)) this.reject(tx);
+    this.reset();
+  }
+
   moveSuggestion(delta: number): void {
     if (!this.suggestions) return;
     const n = this.suggestions.items.length;
@@ -237,8 +252,8 @@ export class ChemlySession {
   private restore(tx: ChemlyTransaction, presentTail: string, textBeforeCaret: string): SessionOutcome {
     this.pending = undefined;
     this.suggestions = undefined;
-    this.suppressed = tx.originalText;
-    this.restoreCounts.set(tx.originalText, (this.restoreCounts.get(tx.originalText) ?? 0) + 1);
+    this.reject(tx);
+    this.suppressed = tx.restoreText;
     const restoreTx = this.transaction({
       ruleId: tx.ruleId,
       category: tx.category,
@@ -255,6 +270,17 @@ export class ChemlySession {
       reversible: false,
     });
     return { kind: "rewrite", rewrite: { deleteCount: presentTail.length, insertText: tx.restoreText }, transaction: restoreTx };
+  }
+
+  /** Record that the user reverted a conversion: demotion counts and frozen tokens. */
+  private reject(tx: ChemlyTransaction): void {
+    this.restoreCounts.set(tx.originalText, (this.restoreCounts.get(tx.originalText) ?? 0) + 1);
+    const before = tx.originalText.split(/\s+/);
+    const after = tx.replacementText.split(/\s+/);
+    before.forEach((token, i) => {
+      if (token && token !== after[i]) this.rejected.add(token);
+    });
+    while (this.rejected.size > 64) this.rejected.delete(this.rejected.values().next().value!);
   }
 
   private offer(

@@ -1,55 +1,98 @@
-# Formula parser
+# Species, reaction and configuration parsers
 
-`@chemly/chemistry` parses neutral formulas into an AST. Rendering lives in `@chemly/renderer`; scoring lives in `@chemly/core/confidence`.
+`@chemly/chemistry` parses notation into ASTs; `@chemly/renderer` renders them; `@chemly/core/confidence` scores them. No module guesses intent silently: the parser records what was written, `charges.ts` lists the readings, and the policy decides between autocorrect, suggestion and nothing.
 
-## Grammar (Phase 1)
+## Species grammar
 
 ```
-Formula     := Coefficient? Term+
-Term        := (Element | Group) Count?
-Group       := "(" Term+ ")" | "[" Term+ "]"
+Species     := Coefficient? Unit (Dot Coefficient? Unit)* Charge? State?
+Unit        := Term+
+Term        := Isotope? (Element | Group) Count?
+Group       := "(" Unit ")" | "[" Unit "]"
+Isotope     := "^" Integer | superscript-Integer          before an element: ^14C, ¹⁴C
+Charge      := "^" Integer? Sign                          explicit (caret)
+             | Sign                                       implicit: Fe3+, NH4+, Cl-
+             | superscript-Integer? superscript-Sign      already rendered: Fe³⁺
+State       := "(s)" | "(l)" | "(g)" | "(aq)"
+Dot         := "·" | "•" | "∙" | "⋅" | "*"                rendered as · (U+00B7)
 Coefficient := ASCII integer, only when a Term follows
-Count       := integer, ASCII or already-rendered subscript
-Element     := one of the 118 IUPAC symbols
+Element     := one of the 118 IUPAC symbols (D and T excluded)
 ```
 
-- **Lexing is deterministic.** An uppercase letter can only start a symbol and a lowercase letter can only continue one, so `Co` is cobalt, `CO` is carbon + oxygen, and `Cx` is an error. No backtracking is needed.
-- **Limits** keep runtime bounded: 64 characters, nesting depth 4, at most 3 digits per number, no leading zeros, no zero counts.
-- **Already-rendered subscripts** (`H₂O`) parse as counts, so re-evaluating converted text is a no-op (render equals input).
-- **The parser never throws.** Every failure returns `{ ok: false, error: { message, position } }`. A property test checks this against arbitrary strings.
+- **Lexing is deterministic by case** against the element table: `Co` is cobalt, `CO` is C + O, `Cx` is an error. The lexer also accepts already-rendered sub/superscripts, so re-evaluating converted text is a no-op.
+- **Limits:** 64 characters, nesting depth 4, 3-digit numbers, charge magnitude ≤ 9, mass number ≤ 300 and ≥ the element's atomic number (`^2C` fails). No leading zeros, no zero counts.
+- **States** are tokens, not groups: `(s)` is solid, while `(S)` is a sulfur group. A state may appear only at the very end, and only one is allowed.
+- **A period is never a hydrate dot** (spec §16). `CuSO4.5H2O` fails to parse; the engine *offers* `CuSO₄·5H₂O` and never applies it.
+- **The parser never throws.** Property tests run thousands of chemistry-shaped random strings through it.
 
-## AST
+## AST decisions (Phase 2)
 
-```ts
-FormulaNode { coefficient?, components: (ElementComponent | GroupComponent)[], charge?, state? }
-ElementComponent { symbol, count?, span }
-GroupComponent { bracket: "paren" | "square", components, count?, span }
-```
+| Decision | Why |
+|---|---|
+| `Charge.notation: "caret" \| "implicit" \| "rendered"` | Only implicit charges are ambiguous. Recording how a charge was written lets the policy trust `SO4^2-` fully while treating `SO42-` as uncertain. |
+| Implicit trailing digits stay a **count** in the AST (`Fe3+` → Fe with count 3, charge 1+) | The parser stays a pure description of the text. Reinterpretation happens in `interpretCharge`, which returns alternative ASTs. |
+| `massNumber` lives on `ElementComponent` | Isotopes label atoms, not species (`^13CH4` is ¹³CH₄). |
+| `adducts: { coefficient?, components }[]` on `FormulaNode` | A hydrate is one species. Charge and state apply to the whole. |
+| `cloneFormula` written per node type, with `Record<keyof Node, true>` key lists | `structuredClone` is a host API outside the engine's ES-only lib. A JSON round-trip would silently drop future non-JSON fields. The key lists make an uncopied new field a compile error. |
+| Reactions are **token sequences**, not one grammar string | `+` is both a separator and a charge sign. Requiring whitespace-delimited separators keeps `Na+ + Cl-` unambiguous, and each species is parsed by the same species parser. |
 
-`charge` and `state` are reserved for Phase 2. The renderer already handles them, so adding ions and phases is a parser change, not an AST change.
+## Implicit charge readings (`charges.ts`)
 
-## From parse to decision
+| Written | Readings (best first) | Certainty |
+|---|---|---|
+| `Na+`, `Cl-`, `H+` (typical ±1 ion) | as written | likely |
+| `B+`, `C-`, `O+`, `V-` (grades, blood types, rails) | as written | **ambiguous** |
+| `Fe3+`, `Ca2+`, `S2-` (typical charge, no homonuclear ion) | count → charge | likely |
+| `O2-`, `N3-` (typical charge **and** a real homonuclear ion) | O²⁻, O₂⁻ / N³⁻, N₃⁻ | **ambiguous** |
+| `O2+`, `I3-`, `H2+`, `H3+` (homonuclear ion, atypical monatomic charge) | O₂⁺, O²⁺ / I₃⁻, I³⁻ | **ambiguous** |
+| `NH4+`, `NO3-` (polyatomic, single-digit last count) | as written | likely |
+| `SO42-` (polyatomic, multi-digit last count) | SO₄²⁻, SO₄₂⁻ | **ambiguous** |
+| `Fe(OH)2+` (count after a parenthesised group) | Fe(OH)₂⁺, Fe(OH)²⁺ | **ambiguous** |
+| `[Fe(CN)6]3-` (number after a square-bracketed complex) | charge | likely |
+| any caret or rendered charge | as written | certain |
 
-1. **Candidate.** Take the last whitespace token on the current line. Strip sentence punctuation and quotes, and strip brackets only when unbalanced: `(see H2O).` gives `H2O`, `(H2O),` gives `(H2O)`.
-2. **Fast path.** With no ASCII digit there is nothing to subscript, so the engine stops.
-3. **Parse and render.** If the Unicode rendering equals the input, nothing changes.
-4. **Score** (`scoreFormula`). Hard rejections first:
-   - the negative lexicon (`B2B`, `PS5`, `SN2`, …);
-   - acronym plus a *trailing* version number (`USB3`, `CPU2`);
-   - a preceding label word (`room H2`, `model X2`);
-   - an explicit count of 1 (`F1`, `H1N1`);
-   - a single element repeated non-adjacently (`B2B`).
+Typical charges come from a data table (`TYPICAL_ION_CHARGES`); homonuclear ions come from `KNOWN_HOMONUCLEAR_IONS`. Ambiguous readings are always **offered as suggestions**, labelled (for example "O²⁻ (charge 2−)"), and never applied. Caret syntax is the documented way to be explicit: `O2^+`, `O^2+`, `SO4^2-`.
 
-   Then these base scores apply:
+## Confidence (`scoreSpecies`)
 
-   | Shape | Chemistry Mode | Standard Mode |
-   |---|---|---|
-   | ≥ 2 distinct elements | 0.97 auto | 0.90 suggest |
-   | single element + coefficient (`2H2`) | 0.97 auto | 0.85 suggest |
-   | single element + count (`H2`, `C60`) | 0.85 suggest | 0.65 none |
+Guards run first and look at the identifier with any charge or state suffix removed, so `PS5+` and `USB3-` stay protected. The guards are: the negative lexicon, an acronym plus a trailing version number, a preceding label word, an explicit count of 1, and a single element repeated non-adjacently.
 
-The acronym guard looks only at *trailing* digits. Interior counts are formula structure: `H3BO3` is boric acid even though its letters spell "HBO". That case was a real regression, and it is now pinned by the corpus. Stems that collide with real compounds (HBO → HBO₂, IO → IO₃, UI → UI₃) are excluded from the acronym list.
+| Shape | Chemistry | Standard |
+|---|---|---|
+| Explicit caret charge or isotope | 0.99 | 0.99 |
+| Implicit charge, *likely* | 0.97 | 0.90 |
+| Implicit charge, *ambiguous* | 0.85 | 0.80 (bare one-letter: 0.60) |
+| ≥ 2 distinct elements (incl. hydrates) | 0.97 | 0.90 |
+| one element + coefficient / state / isotope / reaction context | 0.97 | 0.85 |
+| one element + count, no context (`H2`, `C60`) | 0.85 | 0.65 |
 
-## Known gaps (Phase 2)
+Reaction context is a positive signal: the token follows `+` or an arrow, which itself follows a species.
 
-Charges (`Fe3+`, `SO4^2-`), states (`(aq)`), hydrates (`·5H2O`), isotopes (`^14C`, and `D2O`, since D and T are deliberately not element symbols), reactions and ASCII arrows, and electron configurations. A lone `N2` inside `N2 + 3H2` is currently only suggested; the reaction parser will supply that context.
+## Reactions
+
+`parseReactionSuffix` walks back from the caret collecting `Species ((+ | Arrow) Species)*`. It accepts spaced coefficients (`2 H2O`), electrons (`e-`, `2e-`, `e^-`), multi-step chains and already-rendered tokens. Arrows are `->` →, `<-` ←, `<->` ⇄ and `<=>` ⇌. The bidirectional and equilibrium arrows are kept distinct (spec §20).
+
+- A **standalone arrow** converts in Chemistry Mode only when a species stands before it. `x -> y` and `a <- b` are only offered.
+- A **complete reaction** is rewritten from its *first changed token*, preserving the user's spacing. Its confidence is the minimum over its species, so one ambiguous species makes the whole reaction a suggestion. Certain tokens inside it still convert as they are typed.
+- **Nothing is balanced or solved.** Unbalanced skeleton equations convert like balanced ones.
+- Unspaced equations (`2H2+O2->2H2O`) are deliberately left alone.
+
+## Electron configurations
+
+`parseConfigToken` validates physics, not just shape: n ≥ l + 1 and electrons ≤ 2(2l + 1). That rejects `1p2`, `2d6` and `2p7`. Noble-gas cores (`[Ne]`) start a run.
+
+- A run of two or more orbitals, or a core plus one orbital, converts in Chemistry Mode.
+- A single orbital (`3d6`, which is also dice notation) is only offered.
+- Duplicate subshells break a run.
+
+## Respecting reverts
+
+Tokens the user reverted, by immediate Backspace or by native Undo of a pending conversion, are *frozen* for the session. Reaction and configuration rewrites leave them exactly as typed (`spliceTokens`). At the next boundary, nothing may convert a span overlapping just-restored text.
+
+## Not in Phase 2
+
+- Reaction conditions (`->[heat]`).
+- Natural-language isotope phrases (`carbon 14 isotope`) and left-subscript atomic numbers (`_6^14C`).
+- Deuterium and tritium symbols (`D2O`).
+- Hybridisation (`sp3`), radicals (`OH•`), units.
+- Equation balancing.

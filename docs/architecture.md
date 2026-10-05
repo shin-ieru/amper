@@ -6,7 +6,7 @@ Chemly is a deterministic, local chemistry-notation engine plus thin host adapte
 
 | Package | Role | May depend on |
 |---|---|---|
-| `@chemly/chemistry` | Element table, formula lexer, recursive-descent parser, AST, structural features | — |
+| `@chemly/chemistry` | Element table, species lexer/parser/AST, charge readings, electron configurations, reaction token structure | — |
 | `@chemly/renderer` | AST → Unicode (default), AST → ASCII (normalisation) | chemistry |
 | `@chemly/rules` | Data-driven named rules (Greek, symbols, script commands), registry, custom-rule compiler | — |
 | `@chemly/core` | Engine pipeline, confidence policy, autocomplete, session (transactions + reversal), controller, adapter contract | chemistry, renderer, rules |
@@ -23,7 +23,7 @@ host keystroke ─▶ EditorAdapter ─▶ ChemlyController ─▶ ChemlySession
                      ▲                                       │              │
                      │                                       │   bounded window (256 chars)
                      │                                       │   current line → candidates
-                     │                                       │   recognisers: named · formula
+                     │                                       │   recognisers: named · species · electron config · reaction
                      │                                       │   conflict resolution (priority, span, confidence)
                      │                                       │   band: ≥0.95 auto · 0.70–0.94 suggest · else none
                      │                                       ▼
@@ -33,6 +33,8 @@ host keystroke ─▶ EditorAdapter ─▶ ChemlyController ─▶ ChemlySession
 - **Boundaries.** Only Space, NBSP and Enter trigger destructive evaluation. Trailing punctuation is part of the token and is preserved, so "C3.ai" is never cut at the "." while "H2O." still converts.
 - **TailRewrite** is the only edit primitive: delete N characters before the caret and insert text. Conversion, restoration and suggestion acceptance all use it. It is caret-relative because Docs has no addressable offsets (ADR-003). `planRewrite` narrows it to the changed characters for hosts where edits are expensive.
 - **Session state.** It holds one pending reversible transaction, one suppression entry, the visible suggestions, and per-input restore counts. Any other input, a caret move, an undo or a paste clears the one-shot state.
+- **Structural rewrites** (reactions, electron configurations) replace text from their *first changed token*. Only a structural recogniser that is uncertain yields to a certain conversion of a smaller span inside it; a custom or named rule keeps its §54 priority.
+- **Respecting reverts.** Tokens the user reverted (by Backspace restore, or by native Undo of a pending conversion, reported by adapters as a `history` input event) are frozen for the session. Structural rewrites never touch them again.
 - **Reversal.** If the host can intercept keys, Backspace is consumed and the original is restored (`backspacePressed`). If it cannot, the host deletes one character first and the remainder is restored (`backspaceApplied`). The restored text is suppressed at the next boundary. After two restores of the same input in a session, that input is suggested instead of converted (spec §56).
 - **Undo.** Native. The playground's rewrites are single `execCommand("insertText")` steps (verified by E2E). Docs Undo granularity is still open (spike Q6).
 

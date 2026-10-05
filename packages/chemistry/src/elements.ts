@@ -28,3 +28,9 @@ const ELEMENT_SET: ReadonlySet<string> = new Set(ELEMENT_SYMBOLS);
 export function isElementSymbol(value: string): value is ElementSymbol {
   return ELEMENT_SET.has(value);
 }
+
+/** Atomic number (Z) of a symbol, or undefined. */
+export function atomicNumber(symbol: string): number | undefined {
+  const index = (ELEMENT_SYMBOLS as readonly string[]).indexOf(symbol);
+  return index >= 0 ? index + 1 : undefined;
+}

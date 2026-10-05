@@ -77,7 +77,8 @@ describe("parseFormula: malformed input fails safely", () => {
     ["ISO9001", "too long"],
     ["2", "expected an element"],
     ["₂H", "subscript"],
-    ["H2O(l)", "unexpected character"],
+    // Phase 1 asserted "H2O(l)" was unsupported; states are now grammar, so an invalid state stands in.
+    ["H2O(x)", "unexpected character"],
     ["C3.ai", "unexpected character"],
     ["((((((H))))))", "nested too deeply"],
   ])("%j → %s", (input, message) => {

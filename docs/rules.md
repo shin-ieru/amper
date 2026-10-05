@@ -29,6 +29,10 @@ Patterns match whole words, case-insensitively, with whitespace collapsed. The *
 | `∑` / `∏` | n-ary operators U+2211/U+220F | Not the Greek letters Σ and Π |
 | `Å` | U+00C5 | The NFC form of the Ångström sign |
 
+## Categories
+
+Toggleable in settings (spec §49): `greek`, `symbol`, `formula`, `charge`, `isotope`, `reaction`, `electron`, `custom`. Parser-driven categories are described in [parser.md](parser.md).
+
 ## Conflict priority (spec §54)
 
 custom (1) → command (2) → named symbol (3) → charge/isotope (4) → reaction (5) → formula (6) → unit (7). Ties go to the longer span, then the higher confidence.
