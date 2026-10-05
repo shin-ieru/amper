@@ -20,6 +20,7 @@ Patterns match whole words, case-insensitively, with whitespace collapsed. The *
 |---|---|---|
 | `capital/uppercase/upper case X`, `lowercase/lower case X`, `variant X`, `final sigma` | auto, 1.0 | Explicit intent |
 | Bare Greek name (`sigma`) | suggest, 0.75 | It is a word in prose (spec §4.5) |
+| Bare Greek name right after a qualifier word (`upper sigma`) | nothing | Only the whole explicit phrase converts; never "Capital σ" |
 | `small X`, shorthand `cap/uc/lc X` | suggest, 0.9 | "a small delta in temperature" |
 | Phrase that a longer phrase extends (`not equal` → `not equal to`) | suggest | Converting early strands words ("≠ to") |
 | Relational phrase after a copula (`are not equal to`) | suggest | Prose, not notation |

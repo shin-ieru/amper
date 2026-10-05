@@ -17,7 +17,8 @@ export const NEGATIVE_TOKENS = [
   "room H2", "seat C4", "gate B12", "row K9", "level S3", "version C2", "model CO2", "type H2O",
   // non-formula shapes
   "https://example.com/H2O", "www.H2O.com", "user@H2O.org", "/tmp/H2O", "C:\\H2SO4", "`H2O`",
-  "h2o", "Co2", "CO2e", "H2O-based", "x2", "2x", "100", "3.14", "1st", "21st",
+  // "h2o" was negative in Phase 1; the product milestone requires h2o → H₂O (see case-recovery corpus).
+  "Co2", "CO2e", "H2O-based", "x2", "2x", "100", "3.14", "1st", "21st",
 ];
 
 /** Spec §68: sentences that must remain byte-identical after typing. */

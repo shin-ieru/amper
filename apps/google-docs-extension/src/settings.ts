@@ -1,4 +1,4 @@
-import { resolveSettings, type ChemlySettings } from "@chemly/core";
+import { productSettings, type ChemlySettings, type ChemlySettingsInput } from "@chemly/core";
 import type { InsertStrategy } from "./content/bridge-protocol";
 
 /** Extension-only switches used by the spike; not part of the engine's settings. */
@@ -27,7 +27,9 @@ export interface StoredState {
 export async function loadState(): Promise<StoredState> {
   const stored = await chrome.storage.local.get([SETTINGS_KEY, OPTIONS_KEY]);
   return {
-    settings: resolveSettings((stored[SETTINGS_KEY] as Partial<ChemlySettings> | undefined) ?? {}),
+    // Product profile: an enabled Chemly is chemistry-aware. Any "mode" stored by
+    // earlier builds is ignored rather than allowed to silence formula autocorrect.
+    settings: productSettings((stored[SETTINGS_KEY] as ChemlySettingsInput | undefined) ?? {}),
     options: { ...DEFAULT_EXTENSION_OPTIONS, ...(stored[OPTIONS_KEY] as Partial<ExtensionOptions> | undefined) },
   };
 }

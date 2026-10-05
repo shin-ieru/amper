@@ -12,22 +12,25 @@
         <strong>Chemly</strong>
         <span class="tag">engine playground · development harness</span>
       </div>
-      <div class="mode" role="radiogroup" aria-label="Mode">
-        <label><input type="radio" name="mode" value="standard" checked /> Standard</label>
-        <label><input type="radio" name="mode" value="chemistry" /> Chemistry</label>
+      <div class="mode-wrap">
+        <span class="mode-label" id="mode-label">Engine profile (dev)</span>
+        <div class="mode" role="radiogroup" aria-labelledby="mode-label">
+          <label title="Product default: chemistry-aware autocorrect"><input type="radio" name="mode" value="chemistry" checked /> Chemistry</label>
+          <label title="Conservative engine profile kept for testing"><input type="radio" name="mode" value="standard" /> Standard</label>
+        </div>
       </div>
     </header>
 
     <main class="layout">
       <section class="editor-column" aria-label="Editor">
         <p class="intro">
-          <strong>Write chemistry normally.</strong> Type <code>H2SO4</code>, <code>capital sigma</code> or
-          <code>equilibrium arrow</code> followed by a space. If Chemly guesses wrong, press Backspace to restore
+          <strong>Write chemistry normally.</strong> Type <code>h2so4</code>, <code>capital sigma</code> or
+          <code>2H2 + O2 -&gt; 2H2O</code> followed by a space. If Chemly guesses wrong, press Backspace to restore
           exactly what you typed.
         </p>
         <label class="visually-hidden" for="editor">Document</label>
         <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
-          placeholder="Try: capital sigma, SO4^2-, equilib…, then switch to Chemistry Mode and type 2H2 + O2 -> 2H2O"></textarea>
+          placeholder="Try: h2so4, capital sigma, SO4^2-, equilib…, 2H2 + O2 -> 2H2O"></textarea>
         <div class="status" id="status" aria-live="polite"></div>
       </section>
 

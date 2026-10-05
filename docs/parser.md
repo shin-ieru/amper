@@ -85,6 +85,20 @@ Reaction context is a positive signal: the token follows `+` or an arrow, which 
 - A single orbital (`3d6`, which is also dice notation) is only offered.
 - Duplicate subshells break a run.
 
+## Case recovery
+
+Users should not need IUPAC capitalisation for Chemly to help. When a token does not parse as typed and contains lowercase letters, `caseCandidates` enumerates every way to split each letter run into element symbols case-insensitively. Digits, brackets, charges and a trailing state (`(aq)` is never re-cased) are kept as written. Each candidate is parsed and scored by the normal species pipeline. Then:
+
+| Situation | Behaviour | Example |
+|---|---|---|
+| exactly one candidate is in `COMMON_FORMULAS` (or is a confidently charged monatomic ion) | autocorrect | `co2` → CO₂ (not Co₂), `h2so4` → H₂SO₄, `fe3+` → Fe³⁺ |
+| several candidates are common | offer them all | `cocl2` → CoCl₂ (cobalt chloride) or COCl₂ (phosgene) |
+| none common, but looks like a compound (organic, or metal + anion-former) | offer | `cof2` → CoF₂ |
+| pure-letter word | only the short `DIGIT_FREE_RECOVERABLE` list | `nacl` → NaCl; `bacon`, `Koh`, `no`, `hi` never change |
+| lone element without charge, coefficient, state or reaction | nothing | `h2` (also an HTML heading) |
+
+Identifier guards run on the typed token *upper-cased* too, so `usb3`, `css3`, `c3po`, `k8s`, `ipv6`, `win10` and `b2b` stay protected. The transaction keeps the exact typed text, so `h2so4` → H₂SO₄ → Backspace → `h2so4`. In the conservative engine profile, recovery only ever suggests.
+
 ## Respecting reverts
 
 Tokens the user reverted, by immediate Backspace or by native Undo of a pending conversion, are *frozen* for the session. Reaction and configuration rewrites leave them exactly as typed (`spliceTokens`). At the next boundary, nothing may convert a span overlapping just-restored text.

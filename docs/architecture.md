@@ -30,7 +30,10 @@ host keystroke ─▶ EditorAdapter ─▶ ChemlyController ─▶ ChemlySession
                      └──── TailRewrite {deleteCount, insertText} + ChemlyTransaction
 ```
 
-- **Boundaries.** Only Space, NBSP and Enter trigger destructive evaluation. Trailing punctuation is part of the token and is preserved, so "C3.ai" is never cut at the "." while "H2O." still converts.
+- **Boundaries.** Space, NBSP, Enter and the safe punctuation `, ; : ! ?` trigger evaluation. The period is not a trigger ("C3.ai", "v2.0", "2.5" continue past it) and neither is `)`, which is formula syntax. "H2O." converts at the next Space or Enter, keeping the period.
+- **Product profile.** `productSettings()` (chemistry-aware, every assist on) is what the extension and the playground use. "standard" survives only as a conservative engine profile for tests and diagnostics; there is no user-facing mode.
+- **Case recovery** is a separate stage that runs only when the typed text does not parse as written. It enumerates element tokenisations case-insensitively, re-cases them canonically and ranks them against a common-formula lexicon. It autocorrects only one clear interpretation. See [parser.md](parser.md#case-recovery).
+- **Host-observed text.** `applyRewrite` may return `{ ok, removedTail }` when the host replaced text that differs only by host-side changes (Docs auto-capitalisation). The session then stores the real text, so Backspace restores the document as it was.
 - **TailRewrite** is the only edit primitive: delete N characters before the caret and insert text. Conversion, restoration and suggestion acceptance all use it. It is caret-relative because Docs has no addressable offsets (ADR-003). `planRewrite` narrows it to the changed characters for hosts where edits are expensive.
 - **Session state.** It holds one pending reversible transaction, one suppression entry, the visible suggestions, and per-input restore counts. Any other input, a caret move, an undo or a paste clears the one-shot state.
 - **Structural rewrites** (reactions, electron configurations) replace text from their *first changed token*. Only a structural recogniser that is uncertain yields to a certain conversion of a smaller span inside it; a custom or named rule keeps its §54 priority.

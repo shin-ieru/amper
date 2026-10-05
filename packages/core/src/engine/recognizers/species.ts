@@ -1,14 +1,19 @@
 import {
   analyzeFormula,
+  caseCandidates,
+  COMMON_FORMULAS,
+  DIGIT_FREE_RECOVERABLE,
+  formulaKey,
   interpretCharge,
+  looksLikeCompound,
   parseArrowToken,
   parseElectronToken,
   parseFormula,
   type FormulaNode,
 } from "@chemly/chemistry";
-import { formulaToUnicode } from "@chemly/renderer";
+import { formulaToAscii, formulaToUnicode } from "@chemly/renderer";
 import { PRIORITY } from "@chemly/rules";
-import { nonProseReason } from "../../confidence/context";
+import { ACRONYM_STEMS, acronymStem, NEGATIVE_LEXICON, nonProseReason } from "../../confidence/context";
 import { scoreSpecies } from "../../confidence/policy";
 import type { ChemlyCategory, ChemlyMode, Recognition, Rejection } from "../../types";
 import { previousWord, trimFormulaToken, wordTokens, type WordToken } from "../text";
@@ -45,12 +50,29 @@ function classify(node: FormulaNode, typedCaret: boolean): Pick<SpeciesReading, 
  * Parses one candidate as a chemical species and scores every reading.
  * Readings that render identically to the input are dropped (nothing to do).
  */
-export function evaluateSpecies(
+type SpeciesContextInput = { mode: ChemlyMode; previousWord: string | undefined; inReaction: boolean };
+
+export function evaluateSpecies(candidate: string, context: SpeciesContextInput): SpeciesEvaluation {
+  const strict = evaluateStrict(candidate, context);
+  if (strict.ok || !strict.unparsable) return strict;
+  return recoverCase(candidate, context) ?? strict;
+}
+
+/**
+ * Evaluation of the text exactly as written; never attempts case recovery (so
+ * recovery cannot recurse). `typed` is what is actually in the document: a
+ * re-cased candidate ("NaCl" for typed "nacl") is a change even when it
+ * renders identically to itself.
+ */
+function evaluateStrict(
   candidate: string,
-  context: { mode: ChemlyMode; previousWord: string | undefined; inReaction: boolean },
-): SpeciesEvaluation {
+  context: SpeciesContextInput,
+  typed: string = candidate,
+): SpeciesEvaluation & { unparsable?: boolean } {
   const parsed = parseFormula(candidate);
-  if (!parsed.ok) return { ok: false, reason: `not a species: ${parsed.error.message} at ${parsed.error.position}` };
+  if (!parsed.ok) {
+    return { ok: false, reason: `not a species: ${parsed.error.message} at ${parsed.error.position}`, unparsable: true };
+  }
 
   const typedCaret = candidate.includes("^");
   const interpretation = interpretCharge(parsed.value);
@@ -61,7 +83,7 @@ export function evaluateSpecies(
   let firstRejection: string | undefined;
   candidates.forEach((reading, index) => {
     const replacement = formulaToUnicode(reading.node);
-    if (replacement === candidate) return;
+    if (replacement === typed) return;
     const scored = scoreSpecies(candidate, analyzeFormula(reading.node), {
       ...context,
       chargeCertainty: interpretation?.certainty ?? "none",
@@ -86,6 +108,95 @@ export function evaluateSpecies(
   return { ok: true, readings };
 }
 
+/**
+ * Case recovery (product milestone): "h2so4" → H₂SO₄ without forced capitalisation.
+ *
+ * 1. enumerate every valid case-insensitive element tokenisation;
+ * 2. restore canonical capitalisation and parse each candidate;
+ * 3. rank by the common-formula lexicon;
+ * 4. autocorrect only when exactly one interpretation is clear, offer the
+ *    alternatives when capitalisation is chemically ambiguous ("cocl2": CoCl₂ or
+ *    COCl₂), and stay silent otherwise.
+ *
+ * Digit-free words recover only to a short curated list ("nacl"), so ordinary
+ * words ("bacon", "Koh") are never re-cased. Identifier guards also see the
+ * typed token upper-cased, so "usb3", "css3" and "c3po" stay protected.
+ */
+function recoverCase(typed: string, context: SpeciesContextInput): SpeciesEvaluation | undefined {
+  if (!/[a-z]/.test(typed)) return undefined;
+  const upper = typed.toUpperCase();
+  const upperBody = upper.replace(/\((?:AQ|S|L|G)\)$/, "").replace(/(?:\^\d*)?[+\-−]$/, "");
+  for (const form of new Set([upper, upperBody])) {
+    if (NEGATIVE_LEXICON.has(form)) return { ok: false, reason: `"${form}" is in the negative lexicon` };
+    const stem = acronymStem(form);
+    if (stem && ACRONYM_STEMS.has(stem)) return { ok: false, reason: `"${stem}" plus a version number is a product label` };
+  }
+
+  // Only pure-letter tokens are word-like; "na+", "oh-", "h2o(l)" carry chemistry syntax.
+  const digitFree = /^[A-Za-z]+$/.test(typed);
+  const lexicon = digitFree ? DIGIT_FREE_RECOVERABLE : COMMON_FORMULAS;
+  const chemistry = context.mode === "chemistry";
+
+  const options: { canonical: string; best: SpeciesReading; inLexicon: boolean; plausible: boolean }[] = [];
+  for (const canonical of caseCandidates(typed)) {
+    const evaluation = evaluateStrict(canonical, context, typed);
+    if (!evaluation.ok) continue;
+    const best = evaluation.readings[0]!;
+    const features = analyzeFormula(best.node);
+    // A lone recovered element ("h2", a heading tag) needs a charge, coefficient, state or reaction around it.
+    if (
+      features.distinctElements.length === 1 &&
+      !best.node.charge &&
+      !features.hasCoefficient &&
+      !features.hasState &&
+      !context.inReaction
+    ) {
+      continue;
+    }
+    // A truly monatomic ion with a conventional charge ("fe3+" → Fe³⁺) needs no lexicon entry.
+    const monatomicIon = features.monatomicBody && !features.hasCount && !!best.node.charge && best.confidence >= 0.95;
+    options.push({
+      canonical,
+      best,
+      inLexicon: lexicon.has(formulaKey(best.node, formulaToAscii)) || (!digitFree && monatomicIon),
+      plausible: looksLikeCompound(features),
+    });
+  }
+  if (options.length === 0) return undefined;
+
+  const hits = options.filter((o) => o.inLexicon);
+  const note = (o: (typeof options)[number]) => `capitalisation recovered: ${typed} → ${o.canonical}`;
+  const reading = (o: (typeof options)[number], cap: number, alternative: boolean): SpeciesReading => ({
+    ...o.best,
+    confidence: Math.min(o.best.confidence, cap),
+    reasons: [...o.best.reasons, note(o), ...(alternative ? ["several capitalisations are chemically valid"] : [])],
+    label: alternative ? `${o.best.replacement} (capitalisation)` : o.best.replacement,
+    ruleId: "formula.case-recovered",
+  });
+
+  if (hits.length === 1) {
+    // One clear interpretation: autocorrect in the product profile, suggest in the conservative one.
+    return { ok: true, readings: [reading(hits[0]!, chemistry ? 0.96 : 0.85, false)] };
+  }
+  if (hits.length > 1) {
+    return { ok: true, readings: hits.slice(0, 4).map((o, i) => ({ ...reading(o, 0.85 - i * 0.01, true) })) };
+  }
+  // Nothing recognisable: only offer, only with digits, only if it looks like a compound.
+  if (digitFree || !chemistry) return { ok: false, reason: "capitalisation not recoverable with confidence" };
+  const plausible = options.filter((o) => o.plausible).slice(0, 3);
+  if (plausible.length === 0) return { ok: false, reason: "recovered spellings do not look like compounds" };
+  return { ok: true, readings: plausible.map((o, i) => reading(o, 0.8 - i * 0.01, plausible.length > 1)) };
+}
+
+/** A token as a species AST, including clear case recovery. Used by the reaction structure parser. */
+export function speciesNode(text: string): FormulaNode | undefined {
+  const parsed = parseFormula(text);
+  if (parsed.ok) return parsed.value;
+  const recovered = recoverCase(text, { mode: "chemistry", previousWord: undefined, inReaction: true });
+  const best = recovered?.ok ? recovered.readings[0] : undefined;
+  return best && best.confidence >= 0.95 ? best.node : undefined;
+}
+
 /** Does the token at `index` follow "+" or an arrow that itself follows a species? (spec §14 positive signal) */
 export function inReactionContext(tokens: readonly WordToken[], index: number): boolean {
   let i = index - 1;
@@ -94,7 +205,7 @@ export function inReactionContext(tokens: readonly WordToken[], index: number): 
   if (!separator || (separator.text !== "+" && !parseArrowToken(separator.text))) return false;
   const before = tokens[i - 1];
   if (!before) return false;
-  return parseElectronToken(before.text) !== undefined || parseFormula(before.text).ok;
+  return parseElectronToken(before.text) !== undefined || speciesNode(before.text) !== undefined;
 }
 
 /** The last token as a species: neutral formulas, ions, states, hydrates, isotopes (spec §12–17). */
@@ -105,7 +216,7 @@ export function recognizeSpecies(text: string, from: number, mode: ChemlyMode, r
 
   const span = trimFormulaToken(text, token.start, token.end);
   const candidate = text.slice(span.start, span.end);
-  if (!candidate || !CONVERTIBLE.test(candidate)) return [];
+  if (!candidate || !(CONVERTIBLE.test(candidate) || /[a-z]/.test(candidate))) return [];
 
   const reject = (reason: string) => {
     rejections.push({ recognizer: "formula", candidate, reason });

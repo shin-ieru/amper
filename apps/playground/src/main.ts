@@ -3,6 +3,7 @@ import {
   ChemlySession,
   confidenceBand,
   createEngine,
+  productSettings,
   resolveSettings,
   type ChemlySettings,
   type ChemlyTransaction,
@@ -19,10 +20,11 @@ const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>
 
 function loadSettings(): ChemlySettings {
   try {
+    // The harness mirrors the product: chemistry-aware by default; the dev switch may override.
     const raw = localStorage.getItem(STORAGE_KEY);
-    return resolveSettings(raw ? (JSON.parse(raw) as Partial<ChemlySettings>) : {});
+    return raw ? resolveSettings({ mode: "chemistry", ...(JSON.parse(raw) as Partial<ChemlySettings>) }) : productSettings();
   } catch {
-    return resolveSettings();
+    return productSettings();
   }
 }
 
@@ -83,7 +85,7 @@ function update(patch: Partial<ChemlySettings>) {
 document.querySelectorAll<HTMLInputElement>("input[name=mode]").forEach((radio) =>
   radio.addEventListener("change", () => {
     update({ mode: radio.value as ChemlySettings["mode"] });
-    status(`${radio.value === "chemistry" ? "Chemistry" : "Standard"} Mode`);
+    status(radio.value === "chemistry" ? "Product profile (chemistry-aware)" : "Conservative profile (dev)");
   }),
 );
 document.querySelectorAll<HTMLInputElement>("[data-setting]").forEach((box) =>

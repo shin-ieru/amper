@@ -36,6 +36,14 @@ export interface CaretAnchor {
 }
 
 /**
+ * Result of applying a rewrite. `removedTail` reports the text the host actually
+ * replaced when it differs from Chemly's model only in ways the host itself
+ * introduced (Docs auto-capitalising "capital" → "Capital"), so restoration
+ * puts back what was really in the document.
+ */
+export type ApplyResult = boolean | { ok: boolean; removedTail?: string };
+
+/**
  * Host contract (spec §41), adapted for hosts without document offsets:
  * context is "text before the caret" and edits are caret-relative tail
  * rewrites. The engine never sees a host; only this interface does.
@@ -43,7 +51,7 @@ export interface CaretAnchor {
 export interface EditorAdapter {
   readonly capabilities: AdapterCapabilities;
   getContextBeforeCaret(maxChars: number): string;
-  applyRewrite(rewrite: TailRewrite): boolean | Promise<boolean>;
+  applyRewrite(rewrite: TailRewrite): ApplyResult | Promise<ApplyResult>;
 
   onTextInput(handler: (event: EditorInputEvent) => void): Disposable;
   /** Return true from the handler to consume the key. */

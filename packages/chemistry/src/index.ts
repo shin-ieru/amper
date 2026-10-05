@@ -47,5 +47,8 @@ export {
   type ArrowKind,
   type ParsedReaction,
   type ReactionItem,
+  type SpeciesParser,
   type TextToken,
 } from "./reactions";
+export { caseCandidates, MAX_CASE_CANDIDATES } from "./case-recovery";
+export { COMMON_FORMULAS, DIGIT_FREE_RECOVERABLE, formulaKey, looksLikeCompound } from "./common-formulas";

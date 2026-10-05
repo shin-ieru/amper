@@ -8,10 +8,19 @@ export const CONTEXT_CHARS_AFTER = 96;
 
 const WHITESPACE = /[\s ]/;
 
+/**
+ * Punctuation that can end a token without ever being part of one. The period
+ * is deliberately absent: "C3.ai", "v2.0", "2.5" and "CuSO4.5H2O" continue
+ * past it, so "H2O." converts at the next Space/Enter instead. ")" is absent
+ * because it is formula syntax ("Ca(OH)2", "(aq)").
+ */
+export const SAFE_PUNCTUATION: ReadonlySet<string> = new Set([",", ";", ":", "!", "?"]);
+
 /** Boundary characters that end a token and trigger destructive evaluation (spec §6). */
-export function boundaryTrigger(text: string): "space" | "enter" | undefined {
-  if (text === " " || text === " ") return "space";
+export function boundaryTrigger(text: string): "space" | "enter" | "punctuation" | undefined {
+  if (text === " " || text === "\u00a0") return "space";
   if (text === "\n" || text === "\r") return "enter";
+  if (SAFE_PUNCTUATION.has(text)) return "punctuation";
   return undefined;
 }
 

@@ -1,7 +1,7 @@
 import { CONTEXT_CHARS_BEFORE, boundaryTrigger } from "../engine/text";
 import type { ChemlySession, SessionOutcome } from "../history/session";
 import type { ChemlySuggestion, ChemlyTransaction, Disposable, EngineDecision } from "../types";
-import type { EditorAdapter, EditorInputEvent, EditorKeyEvent } from "./adapter";
+import type { ApplyResult, EditorAdapter, EditorInputEvent, EditorKeyEvent } from "./adapter";
 
 export type ControllerEvent =
   | { type: "decision"; decision: EngineDecision }
@@ -138,9 +138,14 @@ export class ChemlyController {
 
   private apply(transaction: ChemlyTransaction, rewrite: { deleteCount: number; insertText: string }): void {
     this.applying = true;
-    const finish = (ok: boolean) => {
+    const finish = (result: ApplyResult) => {
       this.applying = false;
+      const ok = typeof result === "boolean" ? result : result.ok;
+      const observed = typeof result === "boolean" ? undefined : result.removedTail;
       if (ok) {
+        if (observed !== undefined && observed !== transaction.removedTail) {
+          transaction = this.session.amendTransaction(transaction.id, observed) ?? transaction;
+        }
         this.emit({ type: "applied", transaction });
       } else {
         this.session.reset();
@@ -148,15 +153,15 @@ export class ChemlyController {
       }
       this.syncSuggestions();
     };
-    let result: boolean | Promise<boolean>;
+    let result: ApplyResult | Promise<ApplyResult>;
     try {
       result = this.adapter.applyRewrite(rewrite);
     } catch {
       finish(false);
       return;
     }
-    if (typeof result === "boolean") finish(result);
-    else result.then(finish, () => finish(false));
+    if (result instanceof Promise) result.then(finish, () => finish(false));
+    else finish(result);
   }
 
   private syncSuggestions(): void {

@@ -191,6 +191,21 @@ export class ChemlySession {
     this.reset();
   }
 
+  /**
+   * The host replaced different text than modelled, differing only by host-side
+   * changes such as auto-capitalisation. Record what was really there so
+   * Backspace restores the document's text, not Chemly's guess of it.
+   */
+  amendTransaction(id: string, removedTail: string): ChemlyTransaction | undefined {
+    const tx = this.pending;
+    if (!tx || tx.id !== id || removedTail.length !== tx.removedTail.length) return undefined;
+    const boundaryLength = tx.removedTail.length - tx.restoreText.length;
+    tx.removedTail = removedTail;
+    tx.restoreText = removedTail.slice(0, removedTail.length - boundaryLength);
+    tx.originalText = removedTail.slice(0, tx.originalText.length);
+    return tx;
+  }
+
   moveSuggestion(delta: number): void {
     if (!this.suggestions) return;
     const n = this.suggestions.items.length;

@@ -39,6 +39,12 @@ export const GREEK_VARIANTS = [
 ] as const;
 
 const UPPER_QUALIFIERS = ["capital", "uppercase", "upper case", "upper-case"];
+
+/** Words that, directly before a Greek name, make it part of an explicit phrase. */
+export const GREEK_QUALIFIER_WORDS: ReadonlySet<string> = new Set([
+  "capital", "uppercase", "upper", "upper-case", "lowercase", "lower", "lower-case", "case",
+  "small", "cap", "uc", "lc", "variant", "final",
+]);
 const LOWER_QUALIFIERS = ["lowercase", "lower case", "lower-case"];
 
 export function greekRules(): NamedRule[] {
@@ -110,6 +116,7 @@ export function greekRules(): NamedRule[] {
         mode: "suggest",
         priority: PRIORITY.namedSymbol,
         confidence: 0.75,
+        guards: ["not-after-qualifier"],
         ...(name.length >= 4 && { completeFromChars: 4 }),
       },
     );

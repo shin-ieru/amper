@@ -1,5 +1,6 @@
 import {
   planRewrite,
+  type ApplyResult,
   type CaretAnchor,
   type ChemlySuggestion,
   type Disposable,
@@ -38,6 +39,18 @@ export function normalizeDocsText(text: string): string {
 }
 
 const codePoints = (text: string) => Array.from(text).length;
+
+/**
+ * "same": identical after layout normalisation. "case-only": same letters, different
+ * case, same length (host auto-capitalisation). Anything else is "different" and aborts.
+ */
+export function compareDocsText(copied: string, expected: string): "same" | "case-only" | "different" {
+  const a = normalizeDocsText(copied);
+  const b = normalizeDocsText(expected);
+  if (a === b) return "same";
+  if (a.length === b.length && copied.length === expected.length && a.toLowerCase() === b.toLowerCase()) return "case-only";
+  return "different";
+}
 
 /**
  * Google Docs EditorAdapter (spike prototype, ADR-003).
@@ -109,7 +122,7 @@ export class DocsAdapter implements EditorAdapter {
     return this.buffer.text.slice(-maxChars);
   }
 
-  applyRewrite(rewrite: TailRewrite): boolean {
+  applyRewrite(rewrite: TailRewrite): ApplyResult {
     const text = this.buffer.text;
     const removed = text.slice(text.length - rewrite.deleteCount);
     if (removed.length !== rewrite.deleteCount) return false;
@@ -118,6 +131,7 @@ export class DocsAdapter implements EditorAdapter {
     const select = codePoints(plan.deleteText);
     const started = performance.now();
 
+    let observedDelete: string | undefined;
     const call = (request: BridgeRequest) => {
       const response = this.bridge(request);
       if (!response.ok) throw new Error(response.error);
@@ -129,15 +143,20 @@ export class DocsAdapter implements EditorAdapter {
         call({ op: "selectBack", count: select });
         if (this.options.verify) {
           const copied = call({ op: "copySelection" }).text;
-          if (typeof copied === "string" && normalizeDocsText(copied) !== normalizeDocsText(plan.deleteText)) {
+          const match = typeof copied === "string" ? compareDocsText(copied, plan.deleteText) : "unverified";
+          // Docs may have re-cased what was typed (sentence auto-capitalisation): same text, proceed,
+          // and report the document's actual characters so Backspace restores them.
+          if (match === "case-only") observedDelete = copied!;
+          if (match === "different") {
             // Collapse the selection to its right edge (the original caret), then restore the step.
             call({ op: "moveRight", count: 1 });
             if (step) call({ op: "moveRight", count: step });
             this.buffer.reset("verify mismatch");
-            this.options.log("verify-mismatch", { expected: select, got: codePoints(copied) });
+            this.options.log("verify-mismatch", { expected: select, got: codePoints(copied!) });
             return false;
           }
-          if (typeof copied !== "string") this.options.log("unverified", { reason: "copy returned no text" });
+          if (match === "unverified") this.options.log("unverified", { reason: "copy returned no text" });
+          if (match === "case-only") this.options.log("case-drift", { length: select });
         }
       }
       if (plan.insertText) call({ op: "insert", text: plan.insertText, strategy: this.options.strategy });
@@ -149,7 +168,9 @@ export class DocsAdapter implements EditorAdapter {
     }
     this.buffer.applyRewrite(rewrite);
     this.options.log("applied", { stepped: step, selected: select, inserted: codePoints(plan.insertText), ms: +(performance.now() - started).toFixed(2) });
-    return true;
+    if (observedDelete === undefined) return true;
+    const kept = removed.length - plan.deleteText.length - plan.keepSuffix.length;
+    return { ok: true, removedTail: removed.slice(0, kept) + observedDelete + plan.keepSuffix };
   }
 
   onTextInput(handler: (e: EditorInputEvent) => void): Disposable {

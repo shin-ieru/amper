@@ -15,6 +15,7 @@ Everything runs locally and deterministically. No document text leaves the devic
 | Playground harness with debug panel | Done |
 | Google Docs spike | **Viable with documented limitations; edit-mode insertion still to be confirmed.** See [docs/google-docs-spike.md](docs/google-docs-spike.md) |
 | Charges (implicit + caret), states, hydrates, isotopes, electron configurations, ASCII arrows, full reactions | Done (Phase 2); see [docs/parser.md](docs/parser.md) |
+| Product behaviour: chemistry-aware by default, case recovery (`h2so4` → H₂SO₄), safe-punctuation triggers, Docs case-drift handling | Done |
 | Production Google Docs integration (Phase 3) | Blocked on the manual edit-mode check in the spike doc |
 
 ## Requirements
@@ -37,7 +38,7 @@ npm run build:extension
 
 1. `npm run build:extension`
 2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and choose `apps/google-docs-extension/dist`.
-3. Open a Google Doc and reload it. Use the toolbar popup to switch to Chemistry Mode.
+3. Open a Google Doc and reload it. Chemly is chemistry-aware whenever it is enabled; the popup only has on/off switches.
 
 The extension is a **spike prototype**. Before relying on it, run the manual protocol in [docs/google-docs-spike.md](docs/google-docs-spike.md#manual-validation-protocol-editable-document).
 

@@ -22,7 +22,7 @@ export const NEGATIVE_LEXICON: ReadonlySet<string> = new Set([
   "W3C", "Y2K", "CB2",
   // SN1/SN2 are reaction-mechanism names, conventionally S_N1 / S_N2, not formulas.
   "SN1", "SN2",
-  "C3PO",
+  "C3PO", "K8S",
 ]);
 
 /**
@@ -37,6 +37,7 @@ export const ACRONYM_STEMS: ReadonlySet<string> = new Set([
   "NBC", "CNN", "BBC", "PBS", "SKU", "VPN", "VC", "CV", "HIV", "HPV", "SUV", "UFO", "FBI", "UK",
   "UN", "KFC", "KPI", "CPI", "CFO", "CIO", "HP", "NSF", "NIH", "FY", "OS", "IOS", "UPS", "BC",
   "CCSS", "IPO", "ICU", "OB", "OBGYN", "NFC", "SSO", "UX", "COO", "CSS", "WPF", "FPS", "PSU",
+  "IPV", "VP", "WIN",
 ]);
 
 /**

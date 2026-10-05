@@ -6,7 +6,12 @@ export type RuleCategory = "greek" | "symbol" | "custom";
  */
 export type RuleGuard =
   /** "the values are not equal" is prose; "x not equal y" is notation. */
-  | "after-copula";
+  | "after-copula"
+  /**
+   * Never fire right after a Greek qualifier word: "Capital sigma" must become Σ
+   * as a whole, never "Capital σ" via the bare-name rule.
+   */
+  | "not-after-qualifier";
 
 /** A named, phrase-triggered replacement (spec §31). Parser-driven features are not rules. */
 export interface NamedRule {

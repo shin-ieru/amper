@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SuggestionList } from "@chemly/shared-ui";
 import type { BridgeRequest, BridgeResponse } from "./bridge-protocol";
-import { DocsAdapter, normalizeDocsText } from "./docs-adapter";
+import { compareDocsText, DocsAdapter, normalizeDocsText } from "./docs-adapter";
 
 /**
  * A recording fake of the MAIN-world bridge backed by a string + caret, with
@@ -9,7 +9,7 @@ import { DocsAdapter, normalizeDocsText } from "./docs-adapter";
  * Shift+ArrowLeft extends a selection, copy returns it, ArrowRight collapses
  * a selection to its right edge, typing replaces the selection.
  */
-function fakeDocs(initial: string, options: { corruptCopy?: boolean } = {}) {
+function fakeDocs(initial: string, options: { corruptCopy?: boolean; capitalise?: boolean } = {}) {
   const state = { text: initial, caret: initial.length, anchor: initial.length };
   const ops: string[] = [];
   const bridge = (r: BridgeRequest): BridgeResponse => {
@@ -29,7 +29,7 @@ function fakeDocs(initial: string, options: { corruptCopy?: boolean } = {}) {
         state.caret = Math.max(0, state.caret - r.count);
         break;
       case "copySelection":
-        return { ok: true, text: state.caret === state.anchor ? null : options.corruptCopy ? "zzz" : state.text.slice(lo(), hi()) };
+        return { ok: true, text: state.caret === state.anchor ? null : options.corruptCopy ? "zzz".padEnd(hi() - lo(), "z") : state.text.slice(lo(), hi()) };
       case "insert":
         state.text = state.text.slice(0, lo()) + r.text + state.text.slice(hi());
         state.caret = state.anchor = lo() + r.text.length;
@@ -81,6 +81,28 @@ describe("DocsAdapter.applyRewrite", () => {
     const adapter = adapterOn(docs, "z");
     expect(adapter.applyRewrite({ deleteCount: 3, insertText: "" })).toBe(false);
     expect(docs.ops).toEqual([]);
+  });
+
+  it("proceeds when Docs only re-cased the text, and reports the document's real text", () => {
+    // Docs auto-capitalised "capital" at the start of the sentence; the buffer still holds the typed form.
+    const docs = fakeDocs("Capital sigma ");
+    const adapter = adapterOn(docs, "capital sigma ");
+    expect(adapter.applyRewrite({ deleteCount: 14, insertText: "Σ " })).toEqual({ ok: true, removedTail: "Capital sigma " });
+    expect(docs.state.text).toBe("Σ ");
+  });
+
+  it("still aborts when the text really differs", () => {
+    const docs = fakeDocs("Capital sigma ", { corruptCopy: true });
+    const adapter = adapterOn(docs, "capital sigma ");
+    expect(adapter.applyRewrite({ deleteCount: 14, insertText: "Σ " })).toBe(false);
+    expect(docs.state.text).toBe("Capital sigma ");
+  });
+
+  it("classifies differences", () => {
+    expect(compareDocsText("Capital sigma", "capital sigma")).toBe("case-only");
+    expect(compareDocsText("capital\u00a0sigma", "capital sigma")).toBe("same");
+    expect(compareDocsText("capital sigmas", "capital sigma")).toBe("different");
+    expect(compareDocsText("Capitol sigma", "capital sigma")).toBe("different");
   });
 
   it("normalises Docs layout characters when comparing", () => {

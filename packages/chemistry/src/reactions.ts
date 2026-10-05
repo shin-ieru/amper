@@ -51,13 +51,21 @@ export interface ParsedReaction {
 
 const COEFFICIENT_TOKEN = /^[1-9][0-9]{0,2}$/;
 
-function speciesAt(tokens: TextToken[], i: number): ReactionItem | undefined {
+/** Resolves a token to a species AST; callers may add case recovery on top of the strict parser. */
+export type SpeciesParser = (text: string) => FormulaNode | undefined;
+
+const strictSpecies: SpeciesParser = (text) => {
+  const parsed = parseFormula(text);
+  return parsed.ok ? parsed.value : undefined;
+};
+
+function speciesAt(tokens: TextToken[], i: number, parse: SpeciesParser): ReactionItem | undefined {
   const token = tokens[i];
   if (!token) return undefined;
   const electron = parseElectronToken(token.text);
   if (electron) return { kind: "electron", tokens: [token], ...electron };
-  const parsed = parseFormula(token.text);
-  return parsed.ok ? { kind: "species", tokens: [token], node: parsed.value } : undefined;
+  const node = parse(token.text);
+  return node ? { kind: "species", tokens: [token], node } : undefined;
 }
 
 /**
@@ -70,13 +78,13 @@ function speciesAt(tokens: TextToken[], i: number): ReactionItem | undefined {
  * Returns undefined when the last token is not a species. The caller decides
  * whether a run without an arrow matters (it is still a "+" context).
  */
-export function parseReactionSuffix(tokens: TextToken[]): ParsedReaction | undefined {
+export function parseReactionSuffix(tokens: TextToken[], parse: SpeciesParser = strictSpecies): ParsedReaction | undefined {
   const items: ReactionItem[] = [];
   let i = tokens.length - 1;
   let arrowCount = 0;
 
   for (;;) {
-    const species = speciesAt(tokens, i);
+    const species = speciesAt(tokens, i, parse);
     if (!species) break;
     const coefficient = tokens[i - 1];
     if (coefficient && COEFFICIENT_TOKEN.test(coefficient.text) && species.kind === "species" && species.node.coefficient === undefined) {
@@ -91,7 +99,7 @@ export function parseReactionSuffix(tokens: TextToken[]): ParsedReaction | undef
     if (!separator) break;
     const arrow = parseArrowToken(separator.text);
     if (separator.text !== "+" && !arrow) break;
-    if (!speciesAt(tokens, i - 1)) break; // separator with nothing before it is not part of the run
+    if (!speciesAt(tokens, i - 1, parse)) break; // separator with nothing before it is not part of the run
     items.unshift(arrow ? { kind: "arrow", tokens: [separator], arrow } : { kind: "plus", tokens: [separator] });
     if (arrow) arrowCount += 1;
     i -= 1;

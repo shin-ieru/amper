@@ -1,4 +1,4 @@
-import type { NamedRule, RuleRegistry } from "@chemly/rules";
+import { GREEK_QUALIFIER_WORDS, type NamedRule, type RuleRegistry } from "@chemly/rules";
 import { COPULAS, nonProseReason } from "../../confidence/context";
 import { SUGGEST_CAP } from "../../confidence/policy";
 import type { Recognition, Rejection } from "../../types";
@@ -34,7 +34,12 @@ export function recognizeNamed(
     }
     const before = previousWord(text, span.start, from);
     const growable = registry.canGrow(original);
-    return rules.map((rule) => toRecognition(rule, original, span, { before, growable }));
+    const applicable = rules.filter((rule) => {
+      if (!rule.guards?.includes("not-after-qualifier") || !before || !GREEK_QUALIFIER_WORDS.has(before)) return true;
+      rejections.push({ recognizer: "named", candidate: original, reason: `follows "${before}": only the whole explicit phrase may convert` });
+      return false;
+    });
+    return applicable.map((rule) => toRecognition(rule, original, span, { before, growable }));
   }
   return [];
 }

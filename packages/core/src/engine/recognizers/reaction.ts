@@ -3,7 +3,7 @@ import { reactionItemToUnicode } from "@chemly/renderer";
 import { PRIORITY } from "@chemly/rules";
 import type { ChemlyMode, Recognition, Rejection } from "../../types";
 import { previousWord, trimFormulaToken, wordTokens } from "../text";
-import { evaluateSpecies } from "./species";
+import { evaluateSpecies, speciesNode } from "./species";
 import { spliceTokens } from "./splice";
 
 const ASCII_ARROWS = new Set(["->", "<-", "<->", "<=>"]);
@@ -32,7 +32,7 @@ export function recognizeReaction(
   if (ASCII_ARROWS.has(lastWord.text)) {
     const arrow = parseArrowToken(lastWord.text)!;
     // The run before the arrow always ends in a species when it exists.
-    const hasSpecies = parseReactionSuffix(words.slice(0, -1)) !== undefined;
+    const hasSpecies = parseReactionSuffix(words.slice(0, -1), speciesNode) !== undefined;
     return [
       {
         recognizer: "reaction",
@@ -54,7 +54,7 @@ export function recognizeReaction(
   const tokens: TextToken[] = words.map((w, i) =>
     i === words.length - 1 ? { text: text.slice(lastSpan.start, lastSpan.end), ...lastSpan } : w,
   );
-  const reaction = parseReactionSuffix(tokens);
+  const reaction = parseReactionSuffix(tokens, speciesNode);
   if (!reaction || reaction.arrowCount === 0) return [];
 
   const rendered: { start: number; end: number; text: string }[] = [];

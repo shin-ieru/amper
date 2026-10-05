@@ -6,7 +6,8 @@ async function open(page: Page, mode: "standard" | "chemistry" = "standard") {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  if (mode === "chemistry") await page.getByText("Chemistry", { exact: true }).click();
+  // The playground now defaults to the product (chemistry-aware) profile; select explicitly either way.
+  await page.getByText(mode === "chemistry" ? "Chemistry" : "Standard", { exact: true }).click();
   const editor = page.locator("#editor");
   await editor.click();
   return editor;
@@ -190,5 +191,63 @@ test.describe("Phase 2 in a real browser (production build)", () => {
     await expect(suggestionItems(page).first()).toContainText("2H₂ + O₂ → 2H₂O");
     await page.keyboard.press("Tab");
     await expect(editor).toHaveValue("2H₂ + O₂ → 2H₂O ");
+  });
+});
+
+test.describe("product milestone: chemistry-aware by default (no profile selected)", () => {
+  async function openDefault(page: Page) {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    const editor = page.locator("#editor");
+    await editor.click();
+    return editor;
+  }
+
+  const cases: [string, string][] = [
+    ["H2O ", "H₂O "],
+    ["H2SO4 ", "H₂SO₄ "],
+    ["Ca(OH)2 ", "Ca(OH)₂ "],
+    ["SO4^2- ", "SO₄²⁻ "],
+    ["2H2 + O2 -> 2H2O ", "2H₂ + O₂ → 2H₂O "],
+    ["Capital Sigma ", "Σ "],
+    ["CAPITAL DELTA ", "Δ "],
+    ["Lowercase Sigma ", "σ "],
+    ["h2so4 ", "H₂SO₄ "],
+    ["nacl ", "NaCl "],
+    ["c6h12o6 ", "C₆H₁₂O₆ "],
+    ["H2O, then ", "H₂O, then "],
+  ];
+  for (const [input, expected] of cases) {
+    test(`${input.trim()} → ${expected.trim()} without Tab`, async ({ page }) => {
+      const editor = await openDefault(page);
+      await page.keyboard.type(input);
+      await expect(editor).toHaveValue(expected);
+      await expect(suggestionItems(page)).toHaveCount(0);
+    });
+  }
+
+  test("h2so4: Backspace restores exactly what was typed; Undo is one step", async ({ page }) => {
+    const editor = await openDefault(page);
+    await page.keyboard.type("h2so4 ");
+    await page.keyboard.press("Backspace");
+    await expect(editor).toHaveValue("h2so4");
+    await page.keyboard.type(" ");
+    await expect(editor).toHaveValue("h2so4 ");
+    await editor.evaluate((el: HTMLTextAreaElement) => {
+      el.value = "";
+    });
+    await editor.click();
+    await page.keyboard.type("fecl3 ");
+    await expect(editor).toHaveValue("FeCl₃ ");
+    await page.keyboard.press(`${modKey}+z`);
+    await expect(editor).toHaveValue("fecl3 ");
+  });
+
+  test("protections hold by default", async ({ page }) => {
+    const editor = await openDefault(page);
+    const text = "I bought an M2 MacBook in Room H2 for B2B and usb3 work. ";
+    await page.keyboard.type(text);
+    await expect(editor).toHaveValue(text);
   });
 });

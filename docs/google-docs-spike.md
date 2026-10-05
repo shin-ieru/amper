@@ -101,7 +101,7 @@ Status key: **✅ verified live** · **🟡 implemented, verified off-Docs only*
 2. **Synthetic events need the MAIN world** (F6 + isolated-world semantics). This adds a second script and a tiny cross-world protocol. A page script could, in principle, spoof bridge responses. That is acceptable on `docs.google.com`, and it is why verification failures abort rather than proceed.
 3. **Trusted Types are enforced** (F11). There must be no `innerHTML`/script sinks anywhere in code that runs on Docs.
 4. **The allowlisted annotated canvas is not available to Chemly** (F12). Injecting another extension's allowlisted ID would be impersonation, so it is rejected outright.
-5. **Docs' own Substitutions and auto-capitalisation** can change characters the buffer believes it knows. The buffer has no way to see this; verify-before-replace turns it into an abort instead of a wrong edit. Case-insensitive matching keeps "Capital sigma" working.
+5. **Docs' own Substitutions and auto-capitalisation** can change characters the buffer believes it knows. Verify-before-replace handles this. A *case-only* difference (Docs turning `capital` into `Capital`) proceeds, and the adapter reports the document's real text, so Backspace restores what was actually there. Any other difference aborts with no edit. Found in manual testing; covered by `docs-regressions.test.ts`.
 6. **Undo granularity is not controllable** by an extension and is still unknown (Q6).
 7. **Automated Docs E2E needs a dedicated test Google account** plus Chrome for Testing or Chromium. Branded Chrome 137+ ignores `--load-extension` ([PSA][loadext]).
 8. **No Apps Script path for live typing** (F13). Apps Script remains useful only for explicit commands, bulk formatting and a sidebar (spec §40).
@@ -111,8 +111,8 @@ Status key: **✅ verified live** · **🟡 implemented, verified off-Docs only*
 The tester needs a Google account, about 15 minutes, and Chrome 111 or later.
 
 1. `npm run build:extension`, then open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and choose `apps/google-docs-extension/dist`.
-2. Open `https://docs.new`. In the Chemly popup, choose **Mode: Chemistry**, turn on **Console diagnostics**, and reload the doc. Open DevTools → Console and filter for `[Chemly]`.
-3. Run each row with **Insertion: Synthetic keypress**, then repeat the failing rows with **Synthetic paste**.
+2. Open `https://docs.new`. Chemly is chemistry-aware whenever it is enabled; there is no mode to choose. In the popup, open **Developer / testing**, turn on **Console diagnostics**, and reload the doc. Open DevTools → Console and filter for `[Chemly]`.
+3. Run each row with **Insertion: Synthetic keypress** (Developer / testing), then repeat the failing rows with **Synthetic paste**.
 
 | ID | Do | Expect | Answers |
 |---|---|---|---|
@@ -163,6 +163,9 @@ _Pending: fill in after running the manual protocol above. Then update the concl
 | T14 | | |
 | T15 (Phase 2) type `SO4^2- ` and `2H2 + O2 -> 2H2O ` in Chemistry Mode | | |
 | T16 (Phase 2) Cmd/Ctrl+Z after a reaction conversion, then keep typing the reaction | | Docs resets Chemly's buffer on Undo, so the reverted text is never revisited |
+| T17 (product) At the start of a paragraph type `capital sigma ` (Docs capitalises it) | | Expect exactly `Σ `; Backspace → `Capital sigma` |
+| T18 (product) type `h2so4 `, `nacl `, `fecl3 ` | | Expect `H₂SO₄ `, `NaCl `, `FeCl₃ ` with no Tab; Backspace restores the lowercase |
+| T19 (product) type `H2O, ` | | Converts at the comma |
 
 ## Alternatives considered
 

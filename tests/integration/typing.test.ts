@@ -97,10 +97,19 @@ describe("immediate Backspace restoration (spec §8)", () => {
     expect(editor.text).toBe("Σ");
   });
 
-  it("restores trailing punctuation that was typed with the phrase", () => {
+  it("converts at safe punctuation, and immediate Backspace there restores the phrase", () => {
+    // Product milestone: "," is a trigger, so the conversion (and its one-shot restore) happens at the comma.
     const { editor } = setup();
-    editor.type("plus minus, ").press("Backspace");
-    expect(editor.text).toBe("plus minus,");
+    editor.type("plus minus,");
+    expect(editor.text).toBe("±,");
+    editor.press("Backspace");
+    expect(editor.text).toBe("plus minus");
+  });
+
+  it("restores trailing punctuation typed before a Space boundary", () => {
+    const { editor } = setup();
+    editor.type("capital sigma. ").press("Backspace");
+    expect(editor.text).toBe("capital sigma.");
   });
 
   it("respects the backspaceRestore setting", () => {

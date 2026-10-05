@@ -79,6 +79,15 @@ export function resolveSettings(partial: ChemlySettingsInput = {}): ChemlySettin
   };
 }
 
+/**
+ * The product profile (Google Docs extension, playground default): chemistry-aware
+ * autocorrect is simply what an enabled Chemly does. "standard" remains an
+ * engine-level conservative profile for tests and diagnostics, not a user setting.
+ */
+export function productSettings(input: ChemlySettingsInput = {}): ChemlySettings {
+  return resolveSettings({ ...input, mode: "chemistry" });
+}
+
 /** One recogniser's claim over a span of the text before the boundary. */
 export interface Recognition {
   recognizer: "named" | "formula" | "electron" | "reaction";

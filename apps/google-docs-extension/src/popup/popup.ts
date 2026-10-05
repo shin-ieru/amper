@@ -11,7 +11,6 @@ let state: StoredState;
 function render() {
   for (const id of SETTING_BOXES) $<HTMLInputElement>(id).checked = state.settings[id];
   for (const id of OPTION_BOXES) $<HTMLInputElement>(id).checked = state.options[id];
-  $<HTMLSelectElement>("mode").value = state.settings.mode;
   $<HTMLSelectElement>("strategy").value = state.options.strategy;
 }
 
@@ -25,7 +24,6 @@ async function main() {
   render();
   for (const id of SETTING_BOXES) $<HTMLInputElement>(id).addEventListener("change", (e) => update({ [id]: (e.target as HTMLInputElement).checked }));
   for (const id of OPTION_BOXES) $<HTMLInputElement>(id).addEventListener("change", (e) => update({}, { [id]: (e.target as HTMLInputElement).checked }));
-  $<HTMLSelectElement>("mode").addEventListener("change", (e) => update({ mode: (e.target as HTMLSelectElement).value as ChemlySettings["mode"] }));
   $<HTMLSelectElement>("strategy").addEventListener("change", (e) =>
     update({}, { strategy: (e.target as HTMLSelectElement).value as ExtensionOptions["strategy"] }),
   );
