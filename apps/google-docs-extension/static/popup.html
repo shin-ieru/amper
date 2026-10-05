@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chemly</title>
+    <style>
+      :root { --text: #1f1f1f; --muted: #5f6368; --line: #e3e3e3; --accent: #1a73e8; }
+      body { margin: 0; width: 300px; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text); background: #fff; }
+      header { padding: 12px 14px 8px; border-bottom: 1px solid var(--line); }
+      header strong { font-size: 15px; }
+      header p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+      section { padding: 8px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 3px; }
+      h2 { margin: 2px 0; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+      label { display: flex; gap: 6px; align-items: center; }
+      select { font: inherit; }
+      button { font: inherit; padding: 4px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--accent); cursor: pointer; }
+      button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+      pre { margin: 6px 0 0; max-height: 220px; overflow: auto; font: 11px/1.4 ui-monospace, Menlo, monospace; background: #f8f9fa; padding: 6px; border-radius: 6px; white-space: pre-wrap; }
+      .privacy { color: var(--muted); font-size: 11px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Chemly</strong>
+      <p>Type <b>H2SO4</b>, <b>capital sigma</b> or <b>equilibrium arrow</b>. Backspace restores what you typed.</p>
+    </header>
+    <section>
+      <h2>General</h2>
+      <label><input type="checkbox" id="enabled" /> Enable Chemly</label>
+      <label>Mode
+        <select id="mode"><option value="standard">Standard</option><option value="chemistry">Chemistry</option></select>
+      </label>
+      <label><input type="checkbox" id="autoConvert" /> Automatic conversion</label>
+      <label><input type="checkbox" id="autocomplete" /> Autocomplete</label>
+      <label><input type="checkbox" id="backspaceRestore" /> Backspace restores original</label>
+    </section>
+    <section>
+      <h2>Spike options</h2>
+      <label>Insertion
+        <select id="strategy"><option value="keypress">Synthetic keypress</option><option value="paste">Synthetic paste</option></select>
+      </label>
+      <label><input type="checkbox" id="verifyBeforeReplace" /> Verify text before replacing</label>
+      <label><input type="checkbox" id="diagnostics" /> Console diagnostics (no text)</label>
+      <div><button type="button" id="probe">Run environment probe</button></div>
+      <pre id="probeOut" hidden></pre>
+    </section>
+    <section>
+      <p class="privacy">All formatting runs locally. Chemly never sends document text anywhere.</p>
+    </section>
+    <script src="popup.js"></script>
+  </body>
+</html>

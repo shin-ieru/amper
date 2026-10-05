@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+.vite/
+
+# Test and browser artifacts
+test-results/
+playwright-report/
+blob-report/
+coverage/
+.playwright/
+
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crx
+
+# Logs and OS/editor files
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Scratch files from local experiments
+*.tmp.*

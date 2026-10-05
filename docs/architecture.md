@@ -1,0 +1,53 @@
+# Architecture
+
+Chemly is a deterministic, local chemistry-notation engine plus thin host adapters. The product is the Google Docs extension; the playground is a test harness that uses the same engine.
+
+## Packages
+
+| Package | Role | May depend on |
+|---|---|---|
+| `@chemly/chemistry` | Element table, formula lexer, recursive-descent parser, AST, structural features | — |
+| `@chemly/renderer` | AST → Unicode (default), AST → ASCII (normalisation) | chemistry |
+| `@chemly/rules` | Data-driven named rules (Greek, symbols, script commands), registry, custom-rule compiler | — |
+| `@chemly/core` | Engine pipeline, confidence policy, autocomplete, session (transactions + reversal), controller, adapter contract | chemistry, renderer, rules |
+| `@chemly/shared-ui` | Framework-free suggestion popup (shadow DOM) | core (types) |
+| `apps/playground` | Textarea harness with debug panel | core, shared-ui |
+| `apps/google-docs-extension` | MV3 extension: Docs adapter, MAIN-world bridge, popup | core, shared-ui |
+
+The four engine packages compile against an **ES-only lib with no DOM types** (`packages/tsconfig.json`), so a DOM or Docs dependency in core is a compile error. A unit test also scans the engine sources for DOM and Docs identifiers (ADR-001).
+
+## Typing path
+
+```
+host keystroke ─▶ EditorAdapter ─▶ ChemlyController ─▶ ChemlySession ─▶ ChemlyEngine.evaluate()
+                     ▲                                       │              │
+                     │                                       │   bounded window (256 chars)
+                     │                                       │   current line → candidates
+                     │                                       │   recognisers: named · formula
+                     │                                       │   conflict resolution (priority, span, confidence)
+                     │                                       │   band: ≥0.95 auto · 0.70–0.94 suggest · else none
+                     │                                       ▼
+                     └──── TailRewrite {deleteCount, insertText} + ChemlyTransaction
+```
+
+- **Boundaries.** Only Space, NBSP and Enter trigger destructive evaluation. Trailing punctuation is part of the token and is preserved, so "C3.ai" is never cut at the "." while "H2O." still converts.
+- **TailRewrite** is the only edit primitive: delete N characters before the caret and insert text. Conversion, restoration and suggestion acceptance all use it. It is caret-relative because Docs has no addressable offsets (ADR-003). `planRewrite` narrows it to the changed characters for hosts where edits are expensive.
+- **Session state.** It holds one pending reversible transaction, one suppression entry, the visible suggestions, and per-input restore counts. Any other input, a caret move, an undo or a paste clears the one-shot state.
+- **Reversal.** If the host can intercept keys, Backspace is consumed and the original is restored (`backspacePressed`). If it cannot, the host deletes one character first and the remainder is restored (`backspaceApplied`). The restored text is suppressed at the next boundary. After two restores of the same input in a session, that input is suggested instead of converted (spec §56).
+- **Undo.** Native. The playground's rewrites are single `execCommand("insertText")` steps (verified by E2E). Docs Undo granularity is still open (spike Q6).
+
+## Hosts
+
+`EditorAdapter` (`packages/core/src/controller/adapter.ts`) follows spec §41, with two adaptations: context is "text before the caret", and edits are tail rewrites. Adapters report committed input (`insertText`, `deleteBackward`, `other`), key downs (which they may consume), caret movement and composition.
+
+| Adapter | Context source | Edit mechanism | Key interception |
+|---|---|---|---|
+| `VirtualEditor` (tests) | string + caret | splice | configurable |
+| `TextareaAdapter` | `textarea.value` | `execCommand("insertText")`, falling back to `setRangeText` | `preventDefault` |
+| `DocsAdapter` | `TypingBuffer` shadow model | MAIN-world bridge: synthetic legacy-keyCode events, copy-verify | capture-phase `stopImmediatePropagation` |
+
+## Privacy and performance
+
+- No network access anywhere in the engine or extension. Extension storage is `chrome.storage.local`. The only permission is `storage`; host access is limited to `https://docs.google.com/document/*`.
+- Diagnostics log event names, rule ids and lengths, never document text.
+- Median decision time is asserted to be under 5 ms (measured ≈ 0.1 ms in the playground debug panel). The context window is fixed at 256 characters, independent of document length.

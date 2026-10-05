@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chemly Playground</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand">
+        <strong>Chemly</strong>
+        <span class="tag">engine playground · development harness</span>
+      </div>
+      <div class="mode" role="radiogroup" aria-label="Mode">
+        <label><input type="radio" name="mode" value="standard" checked /> Standard</label>
+        <label><input type="radio" name="mode" value="chemistry" /> Chemistry</label>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="editor-column" aria-label="Editor">
+        <p class="intro">
+          <strong>Write chemistry normally.</strong> Type <code>H2SO4</code>, <code>capital sigma</code> or
+          <code>equilibrium arrow</code> followed by a space. If Chemly guesses wrong, press Backspace to restore
+          exactly what you typed.
+        </p>
+        <label class="visually-hidden" for="editor">Document</label>
+        <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
+          placeholder="Try: capital sigma, plus minus, equilib…, then switch to Chemistry Mode and type Ca(OH)2"></textarea>
+        <div class="status" id="status" aria-live="polite"></div>
+      </section>
+
+      <aside class="side" aria-label="Settings and debug">
+        <details open>
+          <summary>Settings</summary>
+          <fieldset>
+            <legend>General</legend>
+            <label><input type="checkbox" data-setting="enabled" checked /> Enable Chemly</label>
+            <label><input type="checkbox" data-setting="autoConvert" checked /> Automatic conversion</label>
+            <label><input type="checkbox" data-setting="autocomplete" checked /> Autocomplete</label>
+            <label><input type="checkbox" data-setting="backspaceRestore" checked /> Backspace restores original</label>
+          </fieldset>
+          <fieldset>
+            <legend>Rules</legend>
+            <label><input type="checkbox" data-category="greek" checked /> Greek</label>
+            <label><input type="checkbox" data-category="symbol" checked /> Symbols</label>
+            <label><input type="checkbox" data-category="formula" checked /> Chemical formulas</label>
+            <label><input type="checkbox" data-category="custom" checked /> Custom replacements</label>
+          </fieldset>
+          <label class="block">Never convert <span class="hint">one per line</span>
+            <textarea id="never" rows="2" spellcheck="false"></textarea>
+          </label>
+          <label class="block">Custom rules <span class="hint">input =&gt; output</span>
+            <textarea id="custom" rows="2" spellcheck="false" placeholder="my catalyst => Pt/C"></textarea>
+          </label>
+        </details>
+
+        <details open>
+          <summary>Debug</summary>
+          <dl class="debug" id="debug"><dt>Last decision</dt><dd>—</dd></dl>
+        </details>
+
+        <details open>
+          <summary>Transactions</summary>
+          <ol class="log" id="log" reversed></ol>
+        </details>
+      </aside>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

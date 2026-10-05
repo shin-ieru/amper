@@ -1,0 +1,14 @@
+{
+  "name": "@chemly/google-docs-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch"
+  },
+  "dependencies": {
+    "@chemly/core": "*",
+    "@chemly/shared-ui": "*"
+  }
+}

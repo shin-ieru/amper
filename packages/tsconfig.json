@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["core/src", "chemistry/src", "rules/src", "renderer/src"],
+  "exclude": ["**/*.test.ts"]
+}

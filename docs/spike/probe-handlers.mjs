@@ -1,0 +1,27 @@
+import { chromium } from "@playwright/test";
+const browser = await chromium.launch({ channel: "chrome", headless: true });
+const page = await (await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "en-US" })).newPage();
+await page.goto("https://docs.google.com/document/d/195j9eDD3ccgjQRttHhJPymLJUCOUjs-jmwTrekvdjFE/edit", { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(7000);
+await page.mouse.click(476, 180); await page.waitForTimeout(400);
+const r = await page.evaluate(() => {
+  const d = document.querySelector("iframe.docs-texteventtarget-iframe").contentDocument;
+  const t = d.querySelector("[contenteditable]"); const W = d.defaultView;
+  const out = {};
+  const dt = new DataTransfer(); dt.setData("text/plain", "Σ");
+  const paste = new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true });
+  t.dispatchEvent(paste); out.syntheticPasteDefaultPrevented = paste.defaultPrevented;
+  const kp = new W.KeyboardEvent("keypress", { key: "x", bubbles: true, cancelable: true });
+  Object.defineProperty(kp, "keyCode", { get: () => 120 }); Object.defineProperty(kp, "charCode", { get: () => 120 }); Object.defineProperty(kp, "which", { get: () => 120 });
+  t.dispatchEvent(kp); out.syntheticKeypressDefaultPrevented = kp.defaultPrevented;
+  const bs = new W.KeyboardEvent("keydown", { key: "Backspace", code: "Backspace", bubbles: true, cancelable: true });
+  Object.defineProperty(bs, "keyCode", { get: () => 8 }); Object.defineProperty(bs, "which", { get: () => 8 });
+  t.dispatchEvent(bs); out.syntheticBackspaceDefaultPrevented = bs.defaultPrevented;
+  const sl = new W.KeyboardEvent("keydown", { key: "ArrowLeft", code: "ArrowLeft", shiftKey: true, bubbles: true, cancelable: true });
+  Object.defineProperty(sl, "keyCode", { get: () => 37 }); Object.defineProperty(sl, "which", { get: () => 37 });
+  t.dispatchEvent(sl); out.syntheticShiftLeftDefaultPrevented = sl.defaultPrevented;
+  out.frameTreeNote = { iframeCount: document.querySelectorAll("iframe").length, contentScriptTargetUrl: d.URL };
+  return out;
+});
+console.log(JSON.stringify(r, null, 2));
+await browser.close();

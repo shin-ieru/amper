@@ -1,0 +1,34 @@
+{
+  "name": "chemly",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Chemistry autocorrect and autocomplete for Google Docs",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p packages/tsconfig.json && tsc -p packages/shared-ui/tsconfig.json && tsc -p apps/playground/tsconfig.json && tsc -p apps/google-docs-extension/tsconfig.json && tsc -p tests/tsconfig.json",
+    "dev": "npm run dev -w @chemly/playground",
+    "build": "npm run build -w @chemly/playground && npm run build -w @chemly/google-docs-extension",
+    "build:extension": "npm run build -w @chemly/google-docs-extension",
+    "e2e": "playwright test",
+    "check": "npm run typecheck && npm test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/chrome": "^0.3.4",
+    "@types/node": "^26.6.4",
+    "esbuild": "^0.28.2",
+    "fast-check": "^4.10.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
+  }
+}
