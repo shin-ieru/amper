@@ -31,3 +31,6 @@ npm-debug.log*
 
 # Scratch files from local experiments
 *.tmp.*
+
+# Release packages
+*.zip

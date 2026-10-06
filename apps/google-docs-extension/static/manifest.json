@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Amper",
   "short_name": "Amper",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Chemistry autocorrect and autocomplete for Google Docs. Runs locally.",
   "minimum_chrome_version": "111",
   "permissions": ["storage"],
