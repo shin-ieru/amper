@@ -183,6 +183,10 @@ Record the results, plus the popup's **Run environment probe** output, in this f
 | T25 type `H2O(l) NaCl(aq) CO2(g) CaCO3(s) done` | | each label subscript, spaces and `done` baseline |
 | T26 after `H2O(l) `, press Backspace | | `H2O(l)` restored as plain baseline text |
 | T27 after `CO2(g) `, press ⌘/Ctrl+Z repeatedly | | record how many steps undo the formatting and the text |
+| T29 in a blank paragraph type `N2 `, `O2 `, `Cl2, `, `O3 `, `S8 ` | | `N₂ O₂ Cl₂, O₃ S₈` immediately, no Tab |
+| T30 type `n2 ` then Backspace | | `N₂ `, then `n2` |
+| T31 type `N2 + 3H2 equi 2NH3 ` and `2H2 + O2 -> 2H2O ` | | `N₂ + 3H₂ ⇌ 2NH₃`, `2H₂ + O₂ → 2H₂O` |
+| T32 type `Room H2`, `Model H2`, `press F2`, `M2 MacBook`, `R2 score`, `F1 race`, `A4 paper`, `B2B` | | all unchanged |
 | T28 type `equi `, `Equi `, `EQUI `, and `equilibrium equipment ` | | `⇌` (U+21CC) three times; the words unchanged; Backspace after `Equi ` → `Equi` |
 
 ## Alternatives considered

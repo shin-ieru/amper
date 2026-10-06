@@ -60,9 +60,11 @@ export const FORMULA_CORPUS: Record<string, string[]> = {
 };
 
 /**
- * Single-element species with a count are ambiguous with identifiers ("H2" vs
- * "room H2"), so without a coefficient they are suggested, not converted.
+ * A lone element with a count is usually an identifier ("U2", "B12"), so it is only
+ * suggested; known elemental molecules (ELEMENTAL_FORMS) are the exception and convert.
+ * P4 is held back (priority label P0–P4); fullerenes are not in the elemental table.
  */
-export const SINGLE_ELEMENT_SUGGESTED = ["H2", "O2", "N2", "Cl2", "O3", "S8", "P4", "C60", "C70", "Br2", "I2"];
+export const SINGLE_ELEMENT_SUGGESTED = ["P4", "C60", "C70", "Fe2", "S6"];
+export const ELEMENTAL_AUTO = ["H2", "N2", "O2", "F2", "Cl2", "Br2", "I2", "O3", "S8"];
 
 export const ALL_FORMULAS = Object.values(FORMULA_CORPUS).flat();

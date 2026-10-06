@@ -15,6 +15,8 @@ export const CASE_RECOVERY_AUTO: [string, string][] = [
   // coefficients, states, hydrates
   ["2h2o", "2H₂O"], ["h2o(l)", "H₂O(l)"], ["co2(g)", "CO₂(g)"], ["nacl(aq)", "NaCl(aq)"], ["cuso4·5h2o", "CuSO₄·5H₂O"],
   // ions
+  // elemental molecules (lowercase recovery; "h2" deliberately excluded, see ELEMENTAL_FORMS)
+  ["h2", "H₂"], ["n2", "N₂"], ["o2", "O₂"], ["f2", "F₂"], ["cl2", "Cl₂"], ["br2", "Br₂"], ["i2", "I₂"], ["o3", "O₃"], ["s8", "S₈"],
   ["so4^2-", "SO₄²⁻"], ["co3^2-", "CO₃²⁻"], ["nh4+", "NH₄⁺"], ["no3-", "NO₃⁻"], ["oh-", "OH⁻"],
   ["fe3+", "Fe³⁺"], ["na+", "Na⁺"], ["cl-", "Cl⁻"], ["ca2+", "Ca²⁺"],
 ];
@@ -33,8 +35,10 @@ export const CASE_RECOVERY_NEGATIVE = [
   // identifiers and products, lower-cased
   "usb3", "c3po", "b2b", "ps5", "css3", "k8s", "ipv6", "i18n", "mp3", "h264", "m2", "a4", "f1", "r2", "x2", "h1n1",
   "covid19", "web3", "html5", "es6", "vp9", "win10", "ios17", "mac15", "gen2", "b12", "u2", "v8", "w3c", "y2k", "p2p",
-  // single elements without context ("h2" is also a heading tag)
-  "h2", "o2", "n2", "cl2",
+  // lone elements that are identifiers (h1 has an explicit count of 1; h3, u2, b12 are not elemental)
+  "h1", "h3", "u2", "b12",
+  // code/markup contexts around an elemental token
+  "`h2`", "<h2>", "h2.title", "/docs/h2",
   // ordinary words, including ones that tokenise into elements
   "bacon", "koh", "Koh", "no", "No", "hi", "co", "he", "in", "as", "so", "be", "chips", "nah", "cab", "bash", "cop",
   "scones", "phone", "sip", "ships", "boss", "cash", "nice", "once", "pinch", "chop",

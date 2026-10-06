@@ -4,7 +4,8 @@
  */
 export const NEGATIVE_TOKENS = [
   // spec §52
-  "H2 model", "Room B2", "B2B", "F1", "Formula 1", "M2 MacBook", "A4", "R2", "C3.ai", "PS5", "X2",
+  // "H2 model": superseded, see SUPERSEDED_ELEMENTAL below.
+  "Room B2", "B2B", "F1", "Formula 1", "M2 MacBook", "A4", "R2", "C3.ai", "PS5", "X2",
   "v2.0", "ISO9001", "HTTP2", "SHA256", "H264",
   // spec §14
   "Room H2", "R2 score", "M2 Mac", "A4 paper", "F1 race", "Version 2.0", "Model X2",
@@ -50,3 +51,12 @@ export const SUPERSEDED_GREEK_PROSE: [string, string][] = [
   ["The delta between the values is small.", "The δ between the values is small."],
   ["A small delta in temperature.", "A δ in temperature."],
 ];
+
+/**
+ * Superseded by the elemental-molecule requirement (2026-10-06): standalone H2,
+ * N2, O2 … convert at the boundary. A label word *before* the token still
+ * protects it ("Model H2", "Room H2"), but a word *after* it cannot be seen when
+ * the boundary is typed, so "H2 model" now converts its first token. Spec V2 §14
+ * still lists "H2 model"; this conflict is reported. Backspace restores it.
+ */
+export const SUPERSEDED_ELEMENTAL: [string, string][] = [["H2 model", "H₂ model"]];

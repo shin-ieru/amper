@@ -1,4 +1,4 @@
-import type { FormulaFeatures } from "@amper/chemistry";
+import type { ElementalForm, FormulaFeatures } from "@amper/chemistry";
 import type { AmperMode } from "../types";
 import { ACRONYM_STEMS, acronymStem, LABEL_WORDS, NEGATIVE_LEXICON } from "./context";
 
@@ -30,6 +30,8 @@ export interface SpeciesContext {
   chargeCertainty: "none" | "certain" | "likely" | "ambiguous";
   /** The user typed explicit caret syntax (SO4^2-, ^14C). */
   typedCaret: boolean;
+  /** The species is a known elemental molecule (N2, O3, S8), if it is one. */
+  elemental?: ElementalForm;
 }
 
 /**
@@ -89,7 +91,15 @@ export function scoreSpecies(token: string, features: FormulaFeatures, context: 
     if (features.hasCoefficient || context.inReaction || features.hasState || features.hasIsotope) {
       return { confidence: chemistry ? 0.97 : 0.85, reasons };
     }
-    reasons.push("single element with a count is often an identifier (H2, U2, B12)");
+    // Known elemental molecules (N2, O2, Cl2, O3, S8) are chemistry on their own; identifier
+    // contexts ("Room H2", "Model H2") were already rejected above.
+    if (context.elemental) {
+      reasons.push(`elemental ${context.elemental.name} (${context.elemental.symbol}${context.elemental.count})`);
+      if (context.elemental.standalone === "auto") return { confidence: chemistry ? 0.97 : 0.85, reasons };
+      reasons.push(context.elemental.note ?? "held back when standalone");
+      return { confidence: chemistry ? 0.85 : 0.65, reasons };
+    }
+    reasons.push("single element with a count is often an identifier (U2, B12, K9)");
     return { confidence: chemistry ? 0.85 : 0.65, reasons };
   }
 

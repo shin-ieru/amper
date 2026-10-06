@@ -56,6 +56,8 @@ export const LABEL_WORDS: ReadonlySet<string> = new Set([
   "route", "highway", "platform", "terminal", "bus", "train", "flight", "size", "series", "chip",
   "macbook", "iphone", "pixel", "galaxy", "playstation", "xbox", "section", "chapter", "page",
   "item", "code", "error", "ticket", "lane", "bay", "zone", "sector", "wing", "pod", "server",
+  // keyboard keys and priority labels: "press F2", "priority P4"
+  "press", "hit", "key", "keys", "button", "tap", "priority", "pri", "severity", "sev",
 ]);
 
 /** Copulas that mark a relational phrase as prose: "the values are not equal". */

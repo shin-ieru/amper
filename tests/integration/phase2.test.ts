@@ -74,7 +74,8 @@ describe("reactions", () => {
     const { editor, events } = setup(chemistry);
     editor.type("N2 + 3H2 <=> 2NH3 ");
     const last = events.filter((e) => e.type === "applied").at(-1);
-    expect(last?.type === "applied" && last.transaction.originalText).toBe("N2 + 3H₂ ⇌ 2NH3");
+    // N2 converted when typed (elemental molecule), so the final rewrite touches only 2NH3.
+    expect(last?.type === "applied" && last.transaction.originalText).toBe("2NH3");
   });
 
   it("does not split unspaced equations, where + could be a charge", () => {
@@ -100,9 +101,9 @@ describe("Backspace restoration for every new conversion", () => {
   it("restores a whole-reaction rewrite to exactly what preceded it", () => {
     const { editor } = setup(chemistry);
     editor.type("N2 + 3H2 <=> 2NH3 ").press("Backspace");
-    expect(editor.text).toBe("N2 + 3H₂ ⇌ 2NH3");
+    expect(editor.text).toBe("N₂ + 3H₂ ⇌ 2NH3");
     editor.type(" ");
-    expect(editor.text).toBe("N2 + 3H₂ ⇌ 2NH3 "); // suppressed: not re-converted
+    expect(editor.text).toBe("N₂ + 3H₂ ⇌ 2NH3 "); // suppressed: not re-converted
   });
 
   it("works on hosts without key interception", () => {
@@ -158,11 +159,10 @@ describe("ambiguity: suggestions instead of guesses", () => {
   it("an ambiguous species makes the whole reaction a suggestion; certain tokens still convert as typed", () => {
     const { editor } = setup(chemistry);
     editor.type("O2 + 4e- -> 2O2- ");
-    // The leading lone "O2" had no context when typed (offered only); "4e-" and "->" were certain.
-    expect(editor.text).toBe("O2 + 4e⁻ → 2O2- ");
+    // O2 (elemental), 4e- and -> were certain; only the ambiguous 2O2- (oxide vs superoxide) is offered.
+    expect(editor.text).toBe("O₂ + 4e⁻ → 2O2- ");
     const offered = editor.visibleSuggestions!.items.map((s) => s.replacement);
-    expect(offered[0]).toBe("O₂ + 4e⁻ → 2O²⁻");
-    expect(offered).toEqual(expect.arrayContaining(["2O²⁻", "2O₂⁻"]));
+    expect(offered).toEqual(["2O²⁻", "2O₂⁻"]);
     editor.press("Tab");
     expect(editor.text).toBe("O₂ + 4e⁻ → 2O²⁻ ");
   });
@@ -237,7 +237,8 @@ describe("Amper never revisits text the user reverted", () => {
 
   it("a natively undone conversion is not re-converted by a later reaction rewrite", () => {
     const { editor } = setup(chemistry);
-    editor.type("N2 ").press("Tab"); // accept the offered N₂
+    editor.type("N2 "); // converts to N₂ (elemental molecule)
+    expect(editor.text).toBe("N₂ ");
     editor.undo();
     expect(editor.text).toBe("N2 ");
     editor.type("+ 3H2 -> 2NH3 ");
@@ -247,7 +248,7 @@ describe("Amper never revisits text the user reverted", () => {
   it("after restoring a whole reaction, none of its tokens convert at the next boundary", () => {
     const { editor } = setup(chemistry);
     editor.type("N2 + 3H2 <=> 2NH3 ").press("Backspace").type(" ");
-    expect(editor.text).toBe("N2 + 3H₂ ⇌ 2NH3 ");
+    expect(editor.text).toBe("N₂ + 3H₂ ⇌ 2NH3 ");
   });
 
   it("an electron-configuration run respects a restored orbital", () => {

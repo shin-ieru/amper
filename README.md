@@ -18,6 +18,7 @@ Everything runs locally and deterministically. No document text leaves the devic
 | Product behaviour: chemistry-aware by default, case recovery (`h2so4` → H₂SO₄), safe-punctuation triggers, Docs case-drift handling | Done |
 | Spec V2 hardening: bare Greek names autocorrect (all 24), canonical arrow table (⇌ U+21CC, ⇄ U+21C4), Docs arrow-substitution handling, state-label presentation layer (baseline default; experimental Docs subscript) | Done |
 | `equi` → ⇌ primary shortcut; subscript state labels (native Docs formatting, self-verifying) as the product default | Done; validated manually in an editable Google Doc (2026-10-06) |
+| Elemental molecules (H₂ N₂ O₂ F₂ Cl₂ Br₂ I₂ O₃ S₈) autocorrect standalone, incl. lowercase recovery; P₄ offered standalone, automatic in reactions | Done |
 | Google Docs editable-doc insertion | Manually verified by the product owner; lists, tables, pageless, Suggesting mode, collaboration, IME and screen readers still to be recorded in the spike doc |
 
 ## Requirements

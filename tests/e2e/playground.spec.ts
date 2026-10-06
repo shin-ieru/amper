@@ -156,7 +156,8 @@ test.describe("Phase 2 in a real browser (production build)", () => {
     const editor = await open(page, "chemistry");
     await page.keyboard.type("N2 + 3H2 <=> 2NH3 ");
     await page.keyboard.press("Backspace");
-    await expect(editor).toHaveValue("N2 + 3H₂ ⇌ 2NH3");
+    // N2 converted as it was typed (elemental molecule); the last rewrite was 2NH3.
+    await expect(editor).toHaveValue("N₂ + 3H₂ ⇌ 2NH3");
   });
 
   test("native Undo reverts a charge conversion and a reaction rewrite one step each", async ({ page }) => {
@@ -333,5 +334,33 @@ test.describe("rule-family hardening (spec V2) in a real browser", () => {
     const editor = await openDefault(page);
     await page.keyboard.type("equilibrium equipment equilateral equi ");
     await expect(editor).toHaveValue("equilibrium equipment equilateral ⇌ ");
+  });
+});
+
+test.describe("elemental molecules in a real browser", () => {
+  for (const [input, expected] of [["N2 ", "N₂ "], ["O2 ", "O₂ "], ["n2 ", "N₂ "], ["Cl2, ", "Cl₂, "], ["O3 ", "O₃ "], ["S8 ", "S₈ "]] as const) {
+    test(`${input.trim()} → ${expected.trim()} immediately`, async ({ page }) => {
+      await page.goto("/");
+      await page.evaluate(() => localStorage.clear());
+      await page.reload();
+      const editor = page.locator("#editor");
+      await editor.click();
+      await page.keyboard.type(input);
+      await expect(editor).toHaveValue(expected);
+      await expect(suggestionItems(page)).toHaveCount(0);
+    });
+  }
+
+  test("n2 Backspace restores n2; Room H2 and Model H2 stay", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    const editor = page.locator("#editor");
+    await editor.click();
+    await page.keyboard.type("n2 ");
+    await page.keyboard.press("Backspace");
+    await expect(editor).toHaveValue("n2");
+    await page.keyboard.type(" Room H2 and Model H2 ");
+    await expect(editor).toHaveValue("n2 Room H2 and Model H2 ");
   });
 });

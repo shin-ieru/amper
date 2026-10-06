@@ -3,6 +3,7 @@ import {
   caseCandidates,
   COMMON_FORMULAS,
   DIGIT_FREE_RECOVERABLE,
+  elementalFormOf,
   formulaKey,
   interpretCharge,
   looksLikeCompound,
@@ -101,6 +102,7 @@ function evaluateStrict(
       ...context,
       chargeCertainty: interpretation?.certainty ?? "none",
       typedCaret,
+      ...(elementalFormOf(reading.node) && { elemental: elementalFormOf(reading.node)! }),
     });
     if (scored.confidence === 0) {
       firstRejection ??= scored.reasons[scored.reasons.length - 1];
@@ -156,13 +158,15 @@ function recoverCase(typed: string, context: SpeciesContextInput): SpeciesEvalua
     if (!evaluation.ok) continue;
     const best = evaluation.readings[0]!;
     const features = analyzeFormula(best.node);
-    // A lone recovered element ("h2", a heading tag) needs a charge, coefficient, state or reaction around it.
+    // A lone recovered element needs a charge, coefficient, state or reaction around it, unless it is
+    // an elemental molecule that may be recovered from lowercase ("h2", "n2", "cl2").
     if (
       features.distinctElements.length === 1 &&
       !best.node.charge &&
       !features.hasCoefficient &&
       !features.hasState &&
-      !context.inReaction
+      !context.inReaction &&
+      !elementalFormOf(best.node)?.lowercase
     ) {
       continue;
     }

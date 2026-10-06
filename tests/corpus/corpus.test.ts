@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createEngine, resolveSettings, type AmperMode } from "@amper/core";
 import { setup } from "../integration/virtual-editor";
-import { ALL_FORMULAS, FORMULA_CORPUS, SINGLE_ELEMENT_SUGGESTED } from "./formulas";
-import { NEGATIVE_TOKENS, NO_CONVERSION_SENTENCES, SUPERSEDED_GREEK_PROSE } from "./negative";
+import { ALL_FORMULAS, ELEMENTAL_AUTO, FORMULA_CORPUS, SINGLE_ELEMENT_SUGGESTED } from "./formulas";
+import { NEGATIVE_TOKENS, NO_CONVERSION_SENTENCES, SUPERSEDED_ELEMENTAL, SUPERSEDED_GREEK_PROSE } from "./negative";
 
 const SUB = "₀₁₂₃₄₅₆₇₈₉";
 
@@ -40,7 +40,14 @@ describe("positive formula corpus", () => {
     });
   }
 
-  it("suggests (does not convert) single-element species without a coefficient", () => {
+  it("converts known elemental molecules on their own", () => {
+    for (const formula of ELEMENTAL_AUTO) {
+      const decision = evaluate(formula, "chemistry");
+      expect(decision.action === "autocorrect" && decision.recognition.replacement, formula).toBe(oracle(formula));
+    }
+  });
+
+  it("suggests (does not convert) other single-element species without a coefficient", () => {
     for (const formula of SINGLE_ELEMENT_SUGGESTED) {
       const decision = evaluate(formula, "chemistry");
       expect(decision.action, formula).toBe("suggest");
@@ -99,5 +106,13 @@ describe("superseded no-conversion examples (spec V2 §9.1 over V1/V2 §68)", ()
     const { editor } = setup({ mode: "chemistry" });
     editor.type(`${input}\n`);
     expect(editor.text).toBe(`${expected}\n`);
+  });
+});
+
+describe("superseded: a following label word cannot be seen at the boundary", () => {
+  it.each(SUPERSEDED_ELEMENTAL)("%j → %j", (input, expected) => {
+    const { editor } = setup({ mode: "chemistry" });
+    editor.type(`${input} `);
+    expect(editor.text).toBe(`${expected} `);
   });
 });

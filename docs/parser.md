@@ -64,9 +64,15 @@ Guards run first and look at the identifier with any charge or state suffix remo
 | Implicit charge, *ambiguous* | 0.85 | 0.80 (bare one-letter: 0.60) |
 | ≥ 2 distinct elements (incl. hydrates) | 0.97 | 0.90 |
 | one element + coefficient / state / isotope / reaction context | 0.97 | 0.85 |
-| one element + count, no context (`H2`, `C60`) | 0.85 | 0.65 |
+| known elemental molecule (`ELEMENTAL_FORMS`: H₂ N₂ O₂ F₂ Cl₂ Br₂ I₂ O₃ S₈) | 0.97 | 0.85 |
+| held-back elemental form (`P4`: priority label, processor) | 0.85 | 0.65 |
+| other lone element + count, no context (`U2`, `B12`, `C60`) | 0.85 | 0.65 |
 
 Reaction context is a positive signal: the token follows `+` or an arrow, which itself follows a species.
+
+### Elemental molecules
+
+A lone element with a count is usually an identifier (`U2`, `B12`, `K9`), so the general rule only offers it. Known elemental molecules are the exception: `ELEMENTAL_FORMS` (in `@amper/chemistry`) lists each with a standalone tier and whether lowercase recovery may restore it. Identifier guards still run first, so a label word *before* the token protects it (`Room H2`, `Model H2`, `press F2`, `Galaxy S8`, `priority P4`). A word *after* the token cannot be seen when the boundary is typed, so `H2 model` converts its first token. That conflicts with the spec's negative list; the conflict is recorded in the corpus. Lowercase input recovers for every elemental form, including `h2`. Amper is a chemistry-writing tool, so real code and markup contexts are excluded by context instead: backtick code, `<h2>`, `h2.title`, URLs and paths.
 
 ## Reactions
 

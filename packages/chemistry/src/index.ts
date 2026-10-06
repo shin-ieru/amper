@@ -52,4 +52,5 @@ export {
   type TextToken,
 } from "./reactions";
 export { caseCandidates, MAX_CASE_CANDIDATES } from "./case-recovery";
+export { ELEMENTAL_FORMS, elementalFormOf, type ElementalForm } from "./elemental";
 export { COMMON_FORMULAS, DIGIT_FREE_RECOVERABLE, formulaKey, looksLikeCompound } from "./common-formulas";
