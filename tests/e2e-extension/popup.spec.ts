@@ -11,10 +11,31 @@ base("production build omits developer and testing controls", () => {
   const popupJs = readFileSync(join(dist, "popup.js"), "utf8");
   const contentJs = readFileSync(join(dist, "content.js"), "utf8");
   const bridgeJs = readFileSync(join(dist, "bridge.js"), "utf8");
+  const manifest = JSON.parse(readFileSync(join(dist, "manifest.json"), "utf8")) as {
+    icons: Record<string, string>;
+    action: { default_icon: Record<string, string> };
+  };
   expect(popupHtml).not.toContain('class="dev"');
   expect(popupJs).not.toContain("amper:probe");
   expect(contentJs).not.toContain("amper:probe");
   expect(bridgeJs).not.toContain("kix-canvas-tile-content");
+  expect(manifest.icons).toEqual({
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png",
+  });
+  expect(manifest.action.default_icon).toEqual({
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+  });
+  for (const [size, path] of Object.entries(manifest.icons)) {
+    const png = readFileSync(join(dist, path));
+    expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    expect(png.readUInt32BE(16)).toBe(Number(size));
+    expect(png.readUInt32BE(20)).toBe(Number(size));
+  }
 });
 
 const test = base.extend<{ context: BrowserContext; extensionId: string; popup: Page }>({

@@ -2,11 +2,25 @@
   "manifest_version": 3,
   "name": "Amper",
   "short_name": "Amper",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Chemistry autocorrect for Google Docs. Opt in; processing stays on your device.",
   "minimum_chrome_version": "111",
   "permissions": ["storage"],
-  "action": { "default_title": "Amper", "default_popup": "popup.html" },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Amper",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["https://docs.google.com/document/*"],

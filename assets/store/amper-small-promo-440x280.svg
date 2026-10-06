@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="280" viewBox="0 0 440 280">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1769e0"/>
+      <stop offset="1" stop-color="#102d53"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#214b7a"/>
+      <stop offset="1" stop-color="#17395f"/>
+    </linearGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#b9efff" opacity=".18"/>
+    </pattern>
+  </defs>
+  <rect width="440" height="280" fill="url(#bg)"/>
+  <rect width="440" height="280" fill="url(#dots)"/>
+  <circle cx="410" cy="25" r="70" fill="#70e2d0" opacity=".08"/>
+  <g transform="translate(24 21)">
+    <rect width="42" height="42" rx="12" fill="#fff" opacity=".16"/>
+    <text x="20" y="34" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="35" font-weight="700" text-anchor="middle">A</text>
+    <circle cx="31" cy="30" r="7" fill="#83e7d6"/>
+    <text x="31" y="33" fill="#123f76" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" text-anchor="middle">2</text>
+  </g>
+  <text x="78" y="50" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="-.6">Amper</text>
+  <text x="24" y="87" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600">Chemistry-aware autocorrect</text>
+  <text x="24" y="108" fill="#d5eaff" font-family="Arial, Helvetica, sans-serif" font-size="16">for Google Docs</text>
+  <rect x="20" y="128" width="400" height="132" rx="18" fill="url(#panel)" stroke="#8bc8ff" stroke-opacity=".28"/>
+  <text x="40" y="153" fill="#9ad8ff" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5">TYPE</text>
+  <text x="40" y="179" fill="#fff" font-family="Menlo, Consolas, monospace" font-size="18" font-weight="500">N2 + 3H2 equi 2NH3</text>
+  <path d="M40 192h355" stroke="#82a9d0" stroke-opacity=".45"/>
+  <text x="40" y="212" fill="#9ad8ff" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5">FORMATTED</text>
+  <text x="40" y="242" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700">N₂ + 3H₂ ⇌ 2NH₃</text>
+</svg>

@@ -1,28 +1,28 @@
-# Chrome Web Store submission: Amper v0.1.2
+# Chrome Web Store submission: Amper v0.1.3
 
-Prepared 6 October 2026 from the current Amper implementation. The v0.1.2 release adds an explicit local-consent gate and removes developer controls from production builds; chemistry recognition and conversion behavior is unchanged. Nothing has been submitted to Google.
+Prepared 6 October 2026 from the current Amper implementation. The v0.1.3 release adds extension icons, a 440×280 promotional image, and public landing/privacy pages; chemistry recognition and conversion behavior is unchanged. Nothing has been submitted to Google.
 
 ## Release package
 
-- Archive: amper-v0.1.2.zip at the repository root
+- Archive: amper-v0.1.3.zip at the repository root
 - Build source: apps/google-docs-extension/dist
 - ZIP root: manifest.json
-- Archive size: 36,830 bytes (103,593 uncompressed bytes)
-- Contents: 7 files — manifest.json, bridge.js, content.js, popup.html, popup.js, reference.html, and reference.js
-- SHA-256: 0e086e9d52359248f74f86244961bcc1a61a5b6d51d653b9b2be8c5bece66dbe
-- Version: 0.1.2 in the extension manifest and all workspace package metadata
+- Archive size: 41,381 bytes (107,974 uncompressed bytes)
+- Contents: 11 files — manifest.json, bridge.js, content.js, popup.html, popup.js, reference.html, reference.js, and four icon PNGs
+- SHA-256: e4a83cb131e927cec8f6eed0cbf8e50a112715b6c4210e2343353a76fc92811d
+- Version: 0.1.3 in the extension manifest and all workspace package metadata
 
-The ZIP contains only the production extension files needed by the current build: manifest.json, bridge.js, content.js, popup.html, popup.js, reference.html, and reference.js. It excludes TypeScript sources, test files, source maps, caches, repository metadata, and development-only files not emitted by the build.
+The ZIP contains only the production extension files needed by the current build, including `icons/icon16.png`, `icons/icon32.png`, `icons/icon48.png`, and `icons/icon128.png`. It excludes TypeScript sources, test files, source maps, caches, repository metadata, and development-only files not emitted by the build.
 
 ## Validation
 
 - Typecheck: passed (`npm run typecheck`).
 - Unit, integration, and corpus suite: passed — 19 test files, 785 tests (`npm test`).
 - Production browser suite: passed — 63 tests (`npm run e2e`).
-- Production extension popup/reference and consent integration suite: passed — 11 tests (`npm run e2e:extension`).
+- Production extension popup/reference, consent, and icon suite: passed — 11 tests (`npm run e2e:extension`).
 - Production extension build: passed (`npm run build:extension`).
-- ZIP integrity and contents inspection: passed — seven production files, `manifest.json` at the ZIP root, version 0.1.2; no source maps, tests, caches, secrets, or development-only controls.
-- Total automated test cases across these suites: 859 (785 Vitest + 63 production browser + 11 production extension browser).
+- ZIP integrity and contents inspection: passed — 11 production files, `manifest.json` at the ZIP root, version 0.1.3, all four manifest icons present at their declared dimensions.
+- Total automated test cases across the suites: 859 (785 Vitest + 63 production browser + 11 production extension browser).
 
 ## Packaged manifest facts
 
@@ -30,6 +30,8 @@ The ZIP contains only the production extension files needed by the current build
 - Name: Amper
 - Minimum Chrome version: 111
 - Required permissions: storage
+- Extension icon: 128×128 PNG at `icons/icon128.png`
+- Additional extension/action icon sizes: 16×16, 32×32, and 48×48 PNGs from the same design
 - Host permissions: none declared separately; the content scripts are scoped to https://docs.google.com/document/*
 - Optional permissions: none
 - Content script matches: https://docs.google.com/document/* for both scripts
@@ -115,57 +117,59 @@ Suggested dashboard statements, subject to the exact current dashboard wording:
 
 Amper is a writing aid for people who write chemistry in Google Docs. After the user explicitly enables it, Amper formats notation such as chemical formulas, charges, reaction arrows, and physical-state labels in the document being edited. Until then, its typing listeners and document-editing bridge remain inactive. Amper requests no access to other websites.
 
-## Privacy policy draft
+## Privacy policy
 
-The policy is in the repository root at PRIVACY.md. Use this public URL in the Chrome Web Store dashboard:
+The public policy page is rendered from the repository-root `PRIVACY.md`. Use this URL in the Chrome Web Store dashboard:
 
-https://github.com/shin-ieru/amper/blob/main/PRIVACY.md
+https://shin-ieru.github.io/amper/privacy/
 
-This URL must be opened while signed out to confirm it is reachable. Because Amper processes website content and user activity locally after opt-in, a privacy policy is required even though the data is not sent to a server. The policy includes an affirmative statement about Chrome Web Store Limited Use. The dashboard privacy answers, listing copy, in-product disclosure, and policy must agree.
+The Pages deployment must be opened while signed out to confirm reachability. Because Amper processes website content and user activity locally after opt-in, a privacy policy is required even though the data is not sent to a server. The policy includes an affirmative statement about Chrome Web Store Limited Use. The dashboard privacy answers, listing copy, in-product disclosure, and policy must agree.
 
 ## URLs
 
-- Homepage: https://github.com/shin-ieru/amper
+- Homepage: https://shin-ieru.github.io/amper/
 - Support: https://github.com/shin-ieru/amper/issues
-- Privacy policy: https://github.com/shin-ieru/amper/blob/main/PRIVACY.md
+- Privacy policy: https://shin-ieru.github.io/amper/privacy/
 
 Confirm that the support page accepts issues and that the privacy URL is public before publishing the listing.
 
-## Screenshot plan
+## Store screenshots
 
-Capture up to five 1280×800 images in a real Google Doc, with no personal information or Google branding in the artwork. Use a clean profile, a plain document, and a readable zoom level.
+Chrome Web Store accepts full-bleed screenshots at **1280×800 pixels** (preferred) or **640×400 pixels**. It requires at least one screenshot and permits up to five. Use square corners with no added padding. Capture actual product behavior; do not create, reconstruct, or composite a Google Docs view.
 
-1. “Your text stays on your device.” Show the popup disclosure and the Enable Amper action.
-2. “Type h2so4. Get H₂SO₄.” Show converted H₂SO₄, Ca(OH)₂, and N₂ in an editable document after enabling.
-3. “Write chemistry naturally.” Show a reaction, state labels, and an equilibrium arrow.
-4. “Ambiguous? Amper asks.” Show the suggestion choices for O2+.
-5. “Every shortcut, searchable.” Show the popup and reference page with equi searched.
+1. **Manual — “Chemistry notation, formatted as you type.”** 1280×800. Capture the editable document content area after typing `N2 + 3H2 equi 2NH3`; show the actual formatted `N₂ + 3H₂ ⇌ 2NH₃` and enough surrounding document to make the example clear. Crop out account names, document title, and unrelated browser chrome.
+2. **Manual — “Formulas, arrows, and state labels.”** 1280×800. In the same clean test document, show actual output such as `H₂O(l)`, `CO₂(g)`, and `equi → ⇌`; frame the document text, not a recreated UI.
+3. **Prepared — “Try typing and settings.”** 1280×800. Real production popup after consent, showing the shortcut examples and product switches: `assets/store/screenshots/amper-popup-settings-1280x800.png`.
+4. **Prepared — “Search the shortcut reference.”** 1280×800. Real production reference page with `equi` in search: `assets/store/screenshots/amper-reference-equi-1280x800.png`.
 
-Use actual extension behavior in each image and avoid personal account names, document titles, or text.
+The two prepared images are captured from the built extension. The two Google Docs images remain for you to capture from a real editable document.
 
 ## Store asset checklist
 
-- [ ] Extension icon: 128×128 PNG inside the ZIP and referenced by the manifest. Optional 16×16, 32×32, and 48×48 sizes can be supplied for browser surfaces.
-- [ ] Store icon: 128×128.
-- [ ] At least one screenshot: 1280×800 or 640×400; up to five are allowed.
-- [ ] Small promo image: 440×280 PNG or JPEG.
+- [x] Extension icon: `apps/google-docs-extension/static/icons/icon128.png` (128×128), referenced by the manifest.
+- [x] Additional extension/action icons: `icon16.png`, `icon32.png`, and `icon48.png` from the same design.
+- [x] Store icon: `apps/google-docs-extension/static/icons/icon128.png` (128×128).
+- [x] At least one real product screenshot: prepared popup and reference captures are 1280×800.
+- [x] Small promo image: `assets/store/amper-small-promo-440x280.png` (440×280 PNG).
 - [ ] Marquee promo image: 1400×560, optional.
 - [ ] Detailed description, category, and listing language.
 - [ ] Public privacy policy URL, support URL, and homepage URL.
 - [ ] Do not use Google logos or imply Google endorsement.
 
-The current extension manifest and ZIP have no icon. The Web Store requires a 128×128 icon in the ZIP, and the listing requires an icon, at least one screenshot, and a 440×280 small promotional image. Those assets are not included in this package.
+The production ZIP includes the 128×128 icon and the manifest references the smaller sizes. The 440×280 promotional image is prepared separately for the dashboard. The two prepared extension-page screenshots are ready; the two real Google Docs screenshots remain manual.
 
 ## Public-repository hygiene
 
 The repository has no LICENSE file. No license has been selected or added. Decide whether to add a license before linking the public source repository as open-source software; without a license, do not advertise the code as open source. A license is separate from the Chrome Web Store listing requirements.
 
-PRIVACY.md is the privacy-policy draft. Review its contact details and publishability before using its URL in the dashboard.
+The public `/privacy/` page is generated from `PRIVACY.md` by `scripts/render-pages.mjs`; the repository Markdown remains the source of truth.
+
+GitHub Pages deploys the checked-in `site/` directory through `.github/workflows/pages.yml`. The repository's Pages source must be set to **GitHub Actions**; the current unauthenticated URLs return 404 until that source is enabled and a deployment succeeds.
 
 ## Review blockers and risks
 
-1. **Missing required store assets.** The extension ZIP has no icon, and no store screenshots or small promotional tile have been prepared.
-2. **Potential consent-timing policy blocker.** Amper's affirmative consent is collected in the popup after installation. The current Chrome Web Store disclosure policy says user-data practices must be prominently disclosed and affirmative informed consent obtained prior to installation. Listing copy and this policy draft disclose the processing, but they do not move the popup action before installation. Resolve this timing requirement with the Web Store's current submission flow before public release; do not treat this patch alone as proof of pre-install consent compliance.
+1. **Potential consent-timing policy blocker.** Amper's affirmative consent is collected in the popup after installation. The current Chrome Web Store disclosure policy says user-data practices must be prominently disclosed and affirmative informed consent obtained prior to installation. The listing and policy disclose processing but do not move the popup action before installation. Resolve the timing requirement before public release.
+2. **Real Google Docs screenshots.** The two planned document screenshots still need to be captured manually from an editable document.
 3. **No LICENSE file.** This is not a Web Store asset requirement, but the repository's code licensing remains unspecified.
 4. **MAIN-world bridge.** It remains dormant until consent and enabled state allow processing. Explain its narrow event-dispatch and verification role in reviewer notes if asked.
 
@@ -186,16 +190,17 @@ Google's current policy requires an accurate privacy policy when an extension ha
 
 ## Manual pre-submission checklist
 
-- [ ] Confirm the release commit/tag is v0.1.2 and the working tree is clean.
+- [ ] Confirm the release commit/tag is v0.1.3 and the working tree is clean.
 - [x] Run npm run typecheck, npm test, npm run e2e, and npm run e2e:extension.
 - [x] Run npm run build:extension.
-- [x] Inspect amper-v0.1.2.zip and confirm manifest.json is at the ZIP root, version is 0.1.2, and all seven production runtime files are present.
+- [x] Inspect amper-v0.1.3.zip and confirm manifest.json is at the ZIP root, version is 0.1.3, and all 11 production runtime files are present.
 - [x] Check that the ZIP contains no secrets, source maps, tests, caches, or repository artifacts.
-- [ ] Add the required extension/store icon and small promo image before upload.
+- [x] Add the extension/store icon and small promo image.
 - [ ] Load the extracted ZIP in a clean Chrome profile and verify the popup and shortcut reference.
 - [ ] In an editable Google Doc, try h2so4, sigma, equi, H2O(l), and 2H2 + O2 -> 2H2O; verify Backspace restore and negative examples such as Room H2.
 - [ ] Resolve the policy requirement for prominent disclosure and affirmative consent before installation; first-run popup consent is post-install.
-- [ ] Confirm the privacy policy and support URLs are publicly reachable.
+- [ ] Confirm the homepage, privacy, and support URLs are publicly reachable while signed out.
+- [ ] Confirm the GitHub Pages workflow completed successfully and the deployed homepage/privacy pages return HTTP 200 while signed out.
 - [ ] Upload the package and complete the listing and Privacy practices fields. Review the dashboard preview before submitting.
 
 No submission to Google has been made.
