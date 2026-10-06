@@ -1,10 +1,11 @@
 {
   "name": "@amper/google-docs-extension",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "build:dev": "node build.mjs --development",
     "watch": "node build.mjs --watch"
   },
   "dependencies": {

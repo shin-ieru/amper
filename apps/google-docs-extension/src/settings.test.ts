@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { LEGACY_STORAGE_KEYS, migrateLegacyStorage, migrateSettingsSchema, SETTINGS_SCHEMA_VERSION, type StorageAreaLike } from "./settings";
+import {
+  CONSENT_VERSION_KEY,
+  CURRENT_CONSENT_VERSION,
+  LEGACY_STORAGE_KEYS,
+  migrateLegacyStorage,
+  migrateSettingsSchema,
+  SETTINGS_SCHEMA_VERSION,
+  stateFromStorage,
+  type StorageAreaLike,
+} from "./settings";
 
 function memoryArea(initial: Record<string, unknown>): StorageAreaLike & { data: Record<string, unknown> } {
   const data = { ...initial };
@@ -66,5 +75,34 @@ describe("settings schema v2: subscript state labels become the default", () => 
     const area = memoryArea({});
     await migrateSettingsSchema(area);
     expect(area.data).toEqual({ "amper.settingsVersion": SETTINGS_SCHEMA_VERSION });
+  });
+});
+
+describe("current consent disclosure", () => {
+  it("keeps a fresh installation disabled until it accepts the disclosure", () => {
+    const state = stateFromStorage({});
+    expect(state.consentAccepted).toBe(false);
+    expect(state.settings.enabled).toBe(false);
+  });
+
+  it("does not treat enabled settings from an older installation as consent", () => {
+    const state = stateFromStorage({
+      "amper.settings": { enabled: true, autocomplete: false, neverConvert: ["H2O"] },
+      "amper.extension": { strategy: "paste" },
+    });
+    expect(state.consentAccepted).toBe(false);
+    expect(state.settings.enabled).toBe(false);
+    expect(state.settings.autocomplete).toBe(false);
+    expect(state.settings.neverConvert).toEqual(["H2O"]);
+    expect(state.options.strategy).toBe("paste");
+  });
+
+  it("restores processing only for the current accepted disclosure version", () => {
+    const state = stateFromStorage({
+      [CONSENT_VERSION_KEY]: CURRENT_CONSENT_VERSION,
+      "amper.settings": { enabled: true },
+    });
+    expect(state.consentAccepted).toBe(true);
+    expect(state.settings.enabled).toBe(true);
   });
 });

@@ -1,4 +1,9 @@
-import { REQUEST_EVENT, RESPONSE_EVENT, type BridgeRequest, type BridgeResponse } from "./bridge-protocol";
+import { ACTIVE_EVENT, REQUEST_EVENT, RESPONSE_EVENT, type BridgeRequest, type BridgeResponse } from "./bridge-protocol";
+
+/** Keep the MAIN-world document bridge dormant until consent and enabled state allow processing. */
+export function setBridgeActive(active: boolean): void {
+  document.dispatchEvent(new CustomEvent(ACTIVE_EVENT, { detail: active }));
+}
 
 /** Isolated-world side of the bridge: a synchronous call into the MAIN world. */
 export function bridgeRequest(request: BridgeRequest): BridgeResponse {

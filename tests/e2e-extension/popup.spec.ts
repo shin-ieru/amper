@@ -1,10 +1,21 @@
 import { chromium, expect, test as base, type BrowserContext, type Page } from "@playwright/test";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const dist = fileURLToPath(new URL("../../apps/google-docs-extension/dist", import.meta.url));
+
+base("production build omits developer and testing controls", () => {
+  const popupHtml = readFileSync(join(dist, "popup.html"), "utf8");
+  const popupJs = readFileSync(join(dist, "popup.js"), "utf8");
+  const contentJs = readFileSync(join(dist, "content.js"), "utf8");
+  const bridgeJs = readFileSync(join(dist, "bridge.js"), "utf8");
+  expect(popupHtml).not.toContain('class="dev"');
+  expect(popupJs).not.toContain("amper:probe");
+  expect(contentJs).not.toContain("amper:probe");
+  expect(bridgeJs).not.toContain("kix-canvas-tile-content");
+});
 
 const test = base.extend<{ context: BrowserContext; extensionId: string; popup: Page }>({
   context: async ({}, use) => {
@@ -33,18 +44,69 @@ const test = base.extend<{ context: BrowserContext; extensionId: string; popup: 
 
 const rows = (page: Page, list: string) => page.locator(`#${list} li`);
 
-test("first run shows the onboarding card, not Try typing", async ({ popup }) => {
-  await expect(popup.locator("#onboarding")).toBeVisible();
+test("first run presents the disclosure and keeps processing disabled", async ({ popup }) => {
+  await expect(popup.locator("#consentDisclosure")).toBeVisible();
   await expect(popup.locator("#try")).toBeHidden();
-  await expect(popup.locator("#onboarding")).toContainText("Space");
-  await expect(popup.locator("#onboarding")).toContainText("Backspace");
-  await expect(rows(popup, "onboardingList")).toHaveText([/h2so4\s*→\s*H₂SO₄/, /sigma\s*→\s*σ/, /equi\s*→\s*⇌/]);
+  await expect(popup.locator("#productControls")).toBeHidden();
+  await expect(popup.locator("#consentDisclosure")).toContainText("reads the text you type in Google Docs");
+  await expect(popup.locator("#consentDisclosure")).toContainText("solely to detect and format chemistry notation");
+  await expect(popup.locator("#consentDisclosure")).toContainText("Processing happens locally in your browser");
+  await expect(popup.locator("#consentDisclosure")).toContainText("not sent to Amper servers or third parties");
+  await expect(popup.getByRole("button", { name: "Enable Amper", exact: true })).toBeVisible();
 });
 
-test("Got it reveals Try typing and is remembered", async ({ popup }) => {
-  await popup.getByRole("button", { name: "Got it" }).click();
-  await expect(popup.locator("#onboarding")).toBeHidden();
+test("Google Docs typing is not processed before consent and is processed after Enable Amper", async ({ context, popup }) => {
+  await context.addInitScript(() => {
+    if (window.top !== window) return;
+    const events: { type: string; detail: unknown }[] = [];
+    Object.defineProperty(window, "__amperTestEvents", { value: events });
+    document.addEventListener("amper:bridge-request", (event) => {
+      events.push({ type: "request", detail: (event as CustomEvent).detail });
+    });
+    document.addEventListener("amper:bridge-active", (event) => {
+      events.push({ type: "active", detail: (event as CustomEvent).detail });
+    });
+  });
+  await context.route("https://docs.google.com/document/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: '<!doctype html><html><body><iframe class="docs-texteventtarget-iframe" src="about:blank"></iframe></body></html>',
+    }),
+  );
+
+  const docs = await context.newPage();
+  await docs.goto("https://docs.google.com/document/d/consent-test/edit");
+  const editor = docs.frameLocator("iframe.docs-texteventtarget-iframe").locator("body");
+  await editor.evaluate((body) => {
+    body.setAttribute("contenteditable", "true");
+    body.setAttribute("role", "textbox");
+  });
+  await editor.pressSequentially("h2o ");
+  await expect(editor).toHaveText("h2o ");
+  await docs.waitForTimeout(100);
+  const requestsBeforeConsent = await docs.evaluate(() =>
+    (window as unknown as { __amperTestEvents: { type: string }[] }).__amperTestEvents.filter((event) => event.type === "request"),
+  );
+  expect(requestsBeforeConsent).toHaveLength(0);
+
+  await popup.getByRole("button", { name: "Enable Amper", exact: true }).click();
+  await expect.poll(() => docs.evaluate(() =>
+    (window as unknown as { __amperTestEvents: { type: string; detail: unknown }[] }).__amperTestEvents.some(
+      (event) => event.type === "active" && event.detail === true,
+    ),
+  )).toBe(true);
+  await editor.pressSequentially("h2o ");
+  await expect.poll(() => docs.evaluate(() =>
+    (window as unknown as { __amperTestEvents: { type: string }[] }).__amperTestEvents.filter((event) => event.type === "request").length,
+  )).toBeGreaterThan(0);
+  await docs.close();
+});
+
+test("Enable Amper records consent, enables processing, and remains enabled after reopening", async ({ popup }) => {
+  await popup.getByRole("button", { name: "Enable Amper", exact: true }).click();
+  await expect(popup.locator("#consentDisclosure")).toBeHidden();
   await expect(popup.locator("#try")).toBeVisible();
+  await expect(popup.locator("#productControls")).toBeVisible();
   await expect(popup.locator("#try")).toContainText("Type a shortcut, then press Space.");
   await expect(rows(popup, "tryList")).toHaveText([
     /equi\s*→\s*⇌/,
@@ -53,19 +115,34 @@ test("Got it reveals Try typing and is remembered", async ({ popup }) => {
     /h2so4\s*→\s*H₂SO₄/,
     /so4\^2-\s*→\s*SO₄²⁻/,
   ]);
+  const accepted = await popup.evaluate(async () => {
+    const state = await chrome.storage.local.get(["amper.consentVersion", "amper.settings"]);
+    return { version: state["amper.consentVersion"], enabled: (state["amper.settings"] as { enabled?: boolean })?.enabled };
+  });
+  expect(accepted).toEqual({ version: 1, enabled: true });
   await popup.reload();
-  await expect(popup.locator("#onboarding")).toBeHidden();
+  await expect(popup.locator("#consentDisclosure")).toBeHidden();
   await expect(popup.locator("#try")).toBeVisible();
 });
 
 test("settings are still the four product switches plus subscript labels", async ({ popup }) => {
-  for (const name of ["Enable Amper", "Automatic conversion", "Autocomplete", "Backspace restores original", "Subscript state labels"]) {
-    await expect(popup.getByLabel(name, { exact: false })).toBeVisible();
+  await popup.getByRole("button", { name: "Enable Amper", exact: true }).click();
+  for (const id of ["enabled", "autoConvert", "autocomplete", "backspaceRestore", "subscriptStates"]) {
+    await expect(popup.locator("input#" + id)).toBeVisible();
   }
-  await expect(popup.locator("details.dev")).not.toHaveAttribute("open", "");
+  await expect(popup.locator("details.dev")).toHaveCount(0);
+});
+
+test("the user can disable Amper after accepting the disclosure", async ({ popup }) => {
+  await popup.getByRole("button", { name: "Enable Amper", exact: true }).click();
+  await popup.getByLabel("Enable Amper", { exact: true }).uncheck();
+  await popup.reload();
+  await expect(popup.locator("#consentDisclosure")).toBeHidden();
+  await expect(popup.getByLabel("Enable Amper", { exact: true })).not.toBeChecked();
 });
 
 test("View all shortcuts opens the searchable reference", async ({ context, popup }) => {
+  await popup.getByRole("button", { name: "Enable Amper", exact: true }).click();
   const opened = context.waitForEvent("page");
   await popup.getByRole("button", { name: "View all shortcuts" }).first().click();
   const reference = await opened;

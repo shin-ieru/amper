@@ -17,6 +17,8 @@ export const DEFAULT_EXTENSION_OPTIONS: ExtensionOptions = {
 
 const SETTINGS_KEY = "amper.settings";
 const OPTIONS_KEY = "amper.extension";
+export const CONSENT_VERSION_KEY = "amper.consentVersion";
+export const CURRENT_CONSENT_VERSION = 1;
 
 /**
  * Storage keys written before the Chemly → Amper rename. Retained only so that
@@ -56,6 +58,7 @@ export async function migrateLegacyStorage(area: StorageAreaLike): Promise<strin
 export interface StoredState {
   settings: AmperSettings;
   options: ExtensionOptions;
+  consentAccepted: boolean;
 }
 
 // chrome.storage.local, not sync: custom rules and never-convert lists stay on this device (spec §45).
@@ -83,12 +86,20 @@ export async function migrateSettingsSchema(area: StorageAreaLike): Promise<bool
 export async function loadState(): Promise<StoredState> {
   await migrateLegacyStorage(chrome.storage.local as unknown as StorageAreaLike);
   await migrateSettingsSchema(chrome.storage.local as unknown as StorageAreaLike);
-  const stored = await chrome.storage.local.get([SETTINGS_KEY, OPTIONS_KEY]);
+  const stored = await chrome.storage.local.get([SETTINGS_KEY, OPTIONS_KEY, CONSENT_VERSION_KEY]);
+  return stateFromStorage(stored);
+}
+
+/** Existing settings do not count as consent; every install must accept this disclosure version. */
+export function stateFromStorage(stored: Record<string, unknown>): StoredState {
+  const consentAccepted = stored[CONSENT_VERSION_KEY] === CURRENT_CONSENT_VERSION;
+  const settings = productSettings((stored[SETTINGS_KEY] as AmperSettingsInput | undefined) ?? {});
   return {
-    // Product profile: an enabled Amper is chemistry-aware. Any "mode" stored by
-    // earlier builds is ignored rather than allowed to silence formula autocorrect.
-    settings: productSettings((stored[SETTINGS_KEY] as AmperSettingsInput | undefined) ?? {}),
+    // Do not treat a prior enabled setting as consent. Existing installations
+    // remain inactive until they accept the current disclosure.
+    settings: consentAccepted ? settings : { ...settings, enabled: false },
     options: { ...DEFAULT_EXTENSION_OPTIONS, ...(stored[OPTIONS_KEY] as Partial<ExtensionOptions> | undefined) },
+    consentAccepted,
   };
 }
 
@@ -96,6 +107,7 @@ export async function saveState(state: Partial<StoredState>): Promise<void> {
   const patch: Record<string, unknown> = {};
   if (state.settings) patch[SETTINGS_KEY] = state.settings;
   if (state.options) patch[OPTIONS_KEY] = state.options;
+  if (state.consentAccepted === true) patch[CONSENT_VERSION_KEY] = CURRENT_CONSENT_VERSION;
   await chrome.storage.local.set(patch);
 }
 

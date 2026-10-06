@@ -1,12 +1,16 @@
 import { AmperController, AmperSession, createEngine, type AmperSettings, type ControllerEvent, type Disposable } from "@amper/core";
 import { SuggestionList } from "@amper/shared-ui";
-import { loadState, onStateChange, type ExtensionOptions } from "../settings";
-import { bridgeRequest } from "./bridge-client";
+import { DEFAULT_EXTENSION_OPTIONS, loadState, onStateChange, type ExtensionOptions } from "../settings";
+import { bridgeRequest, setBridgeActive } from "./bridge-client";
 import { DocsAdapter } from "./docs-adapter";
 import { findTextEventFrame } from "./find-frame";
+import { ProcessingConsentGate } from "./processing-consent-gate";
+
+declare const __AMPER_DEVELOPMENT__: boolean;
 
 let settings: AmperSettings;
-let options: ExtensionOptions;
+let options: ExtensionOptions = DEFAULT_EXTENSION_OPTIONS;
+let consentAccepted = false;
 const engine = createEngine();
 const session = new AmperSession(engine, () => settings);
 let overlay: SuggestionList | undefined;
@@ -14,6 +18,7 @@ let attached: { frame: HTMLIFrameElement; adapter: DocsAdapter; controller: Disp
 const counters = { conversions: 0, restores: 0, applyFailures: 0, suggestionsShown: 0 };
 
 function log(event: string, data?: Record<string, unknown>) {
+  if (!__AMPER_DEVELOPMENT__) return;
   // Event names, rule ids, counts and lengths only: never document text (spec §45, §61).
   if (options?.diagnostics) console.debug(`[Amper] ${event}`, data ?? "");
 }
@@ -73,6 +78,12 @@ function detach() {
  */
 let observer: MutationObserver | undefined;
 function scan() {
+  if (!consentAccepted || !settings.enabled) {
+    detach();
+    observer?.disconnect();
+    observer = undefined;
+    return;
+  }
   const frame = findTextEventFrame();
   if (frame) attachTo(frame);
   else detach();
@@ -83,34 +94,55 @@ function scan() {
   else observer.observe(document.body, { childList: true, subtree: true });
 }
 
+const processingGate = new ProcessingConsentGate(
+  () => {
+    setBridgeActive(true);
+    scan();
+  },
+  () => {
+    setBridgeActive(false);
+    detach();
+    observer?.disconnect();
+    observer = undefined;
+  },
+);
+
 async function main() {
-  ({ settings, options } = await loadState());
+  const initial = await loadState();
+  settings = initial.settings;
+  options = __AMPER_DEVELOPMENT__ ? initial.options : DEFAULT_EXTENSION_OPTIONS;
+  consentAccepted = initial.consentAccepted;
   onStateChange((state) => {
-    const reattach = state.options.strategy !== options.strategy || state.options.verifyBeforeReplace !== options.verifyBeforeReplace;
-    ({ settings, options } = state);
+    const nextOptions = __AMPER_DEVELOPMENT__ ? state.options : DEFAULT_EXTENSION_OPTIONS;
+    const reattach = nextOptions.strategy !== options.strategy || nextOptions.verifyBeforeReplace !== options.verifyBeforeReplace;
+    settings = state.settings;
+    options = nextOptions;
+    consentAccepted = state.consentAccepted;
     session.reset();
     if (reattach && attached) {
-      const frame = attached.frame;
       detach();
-      attachTo(frame);
     }
+    processingGate.update(consentAccepted, settings.enabled);
+    if (reattach && consentAccepted && settings.enabled) scan();
   });
-  scan();
+  processingGate.update(consentAccepted, settings.enabled);
 }
 
-chrome.runtime.onMessage.addListener((message: { type?: string }, _sender, reply) => {
-  if (message.type !== "amper:probe") return false;
-  const bridge = bridgeRequest({ op: "probe" });
-  reply({
-    attached: !!attached,
-    bridge: bridge.ok ? "ok" : bridge.error,
-    environment: bridge.ok ? bridge.report : undefined,
-    counters,
-    bufferLength: attached?.adapter.buffer.text.length ?? 0,
-    settings: { enabled: settings.enabled, mode: settings.mode },
-    options,
+if (__AMPER_DEVELOPMENT__) {
+  chrome.runtime.onMessage.addListener((message: { type?: string }, _sender, reply) => {
+    if (message.type !== "amper:probe") return false;
+    const bridge = bridgeRequest({ op: "probe" });
+    reply({
+      attached: !!attached,
+      bridge: bridge.ok ? "ok" : bridge.error,
+      environment: bridge.ok ? bridge.report : undefined,
+      counters,
+      bufferLength: attached?.adapter.buffer.text.length ?? 0,
+      settings: { enabled: settings.enabled, mode: settings.mode },
+      options,
+    });
+    return false;
   });
-  return false;
-});
+}
 
 void main();

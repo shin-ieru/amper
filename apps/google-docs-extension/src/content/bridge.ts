@@ -10,8 +10,10 @@
  *
  * Evidence: docs/google-docs-spike.md (probes in docs/spike/).
  */
-import { REQUEST_EVENT, RESPONSE_EVENT, type BridgeRequest, type BridgeResponse } from "./bridge-protocol";
+import { ACTIVE_EVENT, REQUEST_EVENT, RESPONSE_EVENT, type BridgeRequest, type BridgeResponse } from "./bridge-protocol";
 import { FRAME_CLASS_SELECTOR, findTextEventFrame } from "./find-frame";
+
+declare const __AMPER_DEVELOPMENT__: boolean;
 
 const KEY = { Enter: 13, ArrowLeft: 37, ArrowRight: 39 } as const;
 const IS_MAC = /mac/i.test(navigator.platform);
@@ -89,7 +91,8 @@ function handle(request: BridgeRequest): BridgeResponse {
       return { ok: true };
     }
     case "probe":
-      return { ok: true, report: probe() };
+      if (__AMPER_DEVELOPMENT__) return { ok: true, report: probe() };
+      return { ok: false, error: "unsupported operation" };
   }
 }
 
@@ -110,7 +113,7 @@ function probe(): Record<string, unknown> {
   };
 }
 
-document.addEventListener(REQUEST_EVENT, (event) => {
+function onRequest(event: Event) {
   let response: BridgeResponse;
   try {
     response = handle(JSON.parse((event as CustomEvent<string>).detail) as BridgeRequest);
@@ -118,4 +121,11 @@ document.addEventListener(REQUEST_EVENT, (event) => {
     response = { ok: false, error: String(error) };
   }
   document.dispatchEvent(new CustomEvent(RESPONSE_EVENT, { detail: JSON.stringify(response) }));
+}
+
+// The MAIN-world bridge is loaded by the manifest, but it does not accept
+// editing or read-back requests until the isolated-world consent gate opens.
+document.addEventListener(ACTIVE_EVENT, (event) => {
+  if ((event as CustomEvent<boolean>).detail === true) document.addEventListener(REQUEST_EVENT, onRequest);
+  else document.removeEventListener(REQUEST_EVENT, onRequest);
 });

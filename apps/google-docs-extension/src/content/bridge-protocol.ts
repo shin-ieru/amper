@@ -7,6 +7,7 @@
  */
 export const REQUEST_EVENT = "amper:bridge-request";
 export const RESPONSE_EVENT = "amper:bridge-response";
+export const ACTIVE_EVENT = "amper:bridge-active";
 
 export type InsertStrategy = "keypress" | "paste";
 
