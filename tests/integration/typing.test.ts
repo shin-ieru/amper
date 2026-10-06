@@ -268,7 +268,7 @@ describe("suggestions and autocomplete (spec §28)", () => {
 });
 
 describe("settings", () => {
-  it("disabling Chemly stops all conversion", () => {
+  it("disabling Amper stops all conversion", () => {
     expect(setup({ enabled: false }).editor.type("capital sigma ").text).toBe("capital sigma ");
   });
 

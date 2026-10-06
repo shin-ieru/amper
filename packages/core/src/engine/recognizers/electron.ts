@@ -1,7 +1,7 @@
-import { parseConfigToken, type ConfigToken } from "@chemly/chemistry";
-import { configTokenToUnicode } from "@chemly/renderer";
-import { PRIORITY } from "@chemly/rules";
-import type { ChemlyMode, Recognition } from "../../types";
+import { parseConfigToken, type ConfigToken } from "@amper/chemistry";
+import { configTokenToUnicode } from "@amper/renderer";
+import { PRIORITY } from "@amper/rules";
+import type { AmperMode, Recognition } from "../../types";
 import { trimFormulaToken, wordTokens } from "../text";
 import { spliceTokens } from "./splice";
 
@@ -14,7 +14,7 @@ import { spliceTokens } from "./splice";
 export function recognizeElectronConfiguration(
   text: string,
   from: number,
-  mode: ChemlyMode,
+  mode: AmperMode,
   frozen?: ReadonlySet<string>,
 ): Recognition[] {
   const tokens = wordTokens(text, from);

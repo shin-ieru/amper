@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEngine, resolveSettings, type ChemlyMode } from "@chemly/core";
+import { createEngine, resolveSettings, type AmperMode } from "@amper/core";
 import { setup } from "../integration/virtual-editor";
 import { ALL_FORMULAS, FORMULA_CORPUS, SINGLE_ELEMENT_SUGGESTED } from "./formulas";
 import { NEGATIVE_TOKENS, NO_CONVERSION_SENTENCES } from "./negative";
@@ -17,7 +17,7 @@ function oracle(formula: string): string {
 }
 
 const engine = createEngine();
-const evaluate = (text: string, mode: ChemlyMode) =>
+const evaluate = (text: string, mode: AmperMode) =>
   engine.evaluate({ textBefore: text, trigger: "space" }, resolveSettings({ mode }));
 
 describe("positive formula corpus", () => {

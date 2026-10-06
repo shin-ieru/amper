@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { ChemlySettingsInput } from "@chemly/core";
+import type { AmperSettingsInput } from "@amper/core";
 import { setup } from "./virtual-editor";
 
-const chemistry: ChemlySettingsInput = { mode: "chemistry" };
-const typed = (text: string, settings: ChemlySettingsInput = chemistry) => setup(settings).editor.type(text).text;
-const suggestions = (text: string, settings: ChemlySettingsInput = chemistry) =>
+const chemistry: AmperSettingsInput = { mode: "chemistry" };
+const typed = (text: string, settings: AmperSettingsInput = chemistry) => setup(settings).editor.type(text).text;
+const suggestions = (text: string, settings: AmperSettingsInput = chemistry) =>
   setup(settings).editor.type(text).visibleSuggestions?.items.map((s) => s.replacement);
 
 describe("Phase 2 required examples (Chemistry Mode, typed end-to-end)", () => {
@@ -220,7 +220,7 @@ describe("Standard Mode", () => {
 });
 
 describe("settings toggles for new categories", () => {
-  const off = (category: string): ChemlySettingsInput => ({ mode: "chemistry", categories: { [category]: false } });
+  const off = (category: string): AmperSettingsInput => ({ mode: "chemistry", categories: { [category]: false } });
 
   it("charges", () => expect(typed("Fe3+ H2O ", off("charge"))).toBe("Fe3+ H₂O "));
   it("isotopes", () => expect(typed("^14C H2O ", off("isotope"))).toBe("^14C H₂O "));
@@ -228,7 +228,7 @@ describe("settings toggles for new categories", () => {
   it("electron configurations", () => expect(typed("1s2 2s2 ", off("electron"))).toBe("1s2 2s2 "));
 });
 
-describe("Chemly never revisits text the user reverted", () => {
+describe("Amper never revisits text the user reverted", () => {
   it("a Backspace-restored token is not re-converted by a later reaction rewrite", () => {
     const { editor } = setup(chemistry);
     editor.type("SO4^2- ").press("Backspace").type(" + Ba2+ -> BaSO4 ");

@@ -1,6 +1,6 @@
-import type { PhraseEntry, RuleRegistry } from "@chemly/rules";
+import type { PhraseEntry, RuleRegistry } from "@amper/rules";
 import { nonProseReason } from "../confidence/context";
-import type { ChemlySuggestion, ToggleableCategory } from "../types";
+import type { AmperSuggestion, ToggleableCategory } from "../types";
 import { trimPhrase, wordTokens, type WordToken } from "./text";
 
 const MAX_SUGGESTIONS = 6;
@@ -31,9 +31,9 @@ function toSuggestion(
   entry: PhraseEntry,
   text: string,
   span: { start: number; end: number },
-  source: ChemlySuggestion["source"],
+  source: AmperSuggestion["source"],
   confidence: number,
-): ChemlySuggestion {
+): AmperSuggestion {
   return {
     ruleId: entry.rule.id,
     category: entry.rule.category,
@@ -58,8 +58,8 @@ export function completePhrase(
   from: number,
   registry: RuleRegistry,
   enabled: Record<ToggleableCategory, boolean>,
-): ChemlySuggestion[] {
-  const ranked: { suggestion: ChemlySuggestion; score: number }[] = [];
+): AmperSuggestion[] {
+  const ranked: { suggestion: AmperSuggestion; score: number }[] = [];
   const seen = new Set<string>();
 
   for (let k = Math.min(registry.maxWords, 6); k >= 1; k--) {
@@ -122,8 +122,8 @@ export function fuzzyPhrase(
   from: number,
   registry: RuleRegistry,
   enabled: Record<ToggleableCategory, boolean>,
-): ChemlySuggestion[] {
-  const out: ChemlySuggestion[] = [];
+): AmperSuggestion[] {
+  const out: AmperSuggestion[] = [];
   for (let k = Math.min(registry.maxWords, 6); k >= 2; k--) {
     const tokens = lastTokens(text, from, k);
     if (!tokens) continue;

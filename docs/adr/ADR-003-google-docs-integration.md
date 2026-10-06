@@ -3,7 +3,7 @@
 **Status:** Accepted, provisional on edit-mode validation · 2026-10-06
 
 ## Context
-Chemly needs per-keystroke behaviour in Docs. Docs renders text to canvas, routes keys through a hidden iframe, has no Apps Script `onEdit`, and gates its annotated canvas behind an allowlist (spike F1, F2, F12, F13).
+Amper needs per-keystroke behaviour in Docs. Docs renders text to canvas, routes keys through a hidden iframe, has no Apps Script `onEdit`, and gates its annotated canvas behind an allowlist (spike F1, F2, F12, F13).
 
 ## Options
 1. Apps Script / Workspace add-on.
@@ -29,7 +29,7 @@ Option 3. Option 4 is the documented fallback if edit-mode insertion fails.
 ## Tradeoffs
 - Depends on undocumented Docs behaviour (high maintenance risk).
 - No conversion of text the user did not just type.
-- Undo granularity is outside Chemly's control.
+- Undo granularity is outside Amper's control.
 
 ## Evidence
 `docs/google-docs-spike.md`, with the probes and validators in `docs/spike/`.

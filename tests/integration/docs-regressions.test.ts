@@ -4,25 +4,25 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  ChemlyController,
-  ChemlySession,
+  AmperController,
+  AmperSession,
   createEngine,
   productSettings,
   type ApplyResult,
-  type ChemlySuggestion,
+  type AmperSuggestion,
   type Disposable,
   type EditorAdapter,
   type EditorInputEvent,
   type EditorKeyEvent,
   type TailRewrite,
-} from "@chemly/core";
+} from "@amper/core";
 import { setup } from "./virtual-editor";
 
 const product = productSettings();
 const typed = (text: string) => setup(product).editor.type(text).text;
 
 describe("product profile (extension defaults)", () => {
-  it("an enabled Chemly is chemistry-aware with every assist on", () => {
+  it("an enabled Amper is chemistry-aware with every assist on", () => {
     expect(product).toMatchObject({ enabled: true, mode: "chemistry", autoConvert: true, autocomplete: true, backspaceRestore: true });
   });
 
@@ -174,14 +174,14 @@ describe("false-positive protections hold under the product profile", () => {
 
 /**
  * A host that, like Google Docs, re-capitalises the first word of a sentence
- * after it is typed, while Chemly's model still holds what the user typed.
+ * after it is typed, while Amper's model still holds what the user typed.
  * Its applyRewrite reports the document's real text (as the Docs adapter's
  * copy-verification now does for case-only differences).
  */
 class AutoCapitalisingHost implements EditorAdapter {
   doc = "";
   model = "";
-  visible: ChemlySuggestion[] | undefined;
+  visible: AmperSuggestion[] | undefined;
   readonly capabilities = { interceptKeys: true };
   private input: ((e: EditorInputEvent) => void)[] = [];
   private keys: ((e: EditorKeyEvent) => boolean)[] = [];
@@ -211,7 +211,7 @@ class AutoCapitalisingHost implements EditorAdapter {
   onComposition(): Disposable {
     return { dispose() {} };
   }
-  showSuggestions(items: ChemlySuggestion[]) {
+  showSuggestions(items: AmperSuggestion[]) {
     this.visible = items;
   }
   hideSuggestions() {
@@ -240,7 +240,7 @@ class AutoCapitalisingHost implements EditorAdapter {
 describe("host-side case drift (Docs auto-capitalisation)", () => {
   function host() {
     const h = new AutoCapitalisingHost();
-    new ChemlyController(h, new ChemlySession(createEngine(), () => product)).start();
+    new AmperController(h, new AmperSession(createEngine(), () => product)).start();
     return h;
   }
 

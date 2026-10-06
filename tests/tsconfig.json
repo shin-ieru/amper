@@ -1,5 +1,20 @@
 {
   "extends": "../tsconfig.base.json",
-  "compilerOptions": { "lib": ["ES2023", "DOM"], "types": ["node"] },
-  "include": [".", "../packages/*/src/**/*.test.ts", "../apps/*/src/**/*.test.ts", "../vitest.config.ts", "../playwright.config.ts"]
+  "compilerOptions": {
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "types": [
+      "node",
+      "chrome"
+    ]
+  },
+  "include": [
+    ".",
+    "../packages/*/src/**/*.test.ts",
+    "../apps/*/src/**/*.test.ts",
+    "../vitest.config.ts",
+    "../playwright.config.ts"
+  ]
 }

@@ -1,4 +1,4 @@
-import type { ChemlySettings } from "@chemly/core";
+import type { AmperSettings } from "@amper/core";
 import { loadState, saveState, type ExtensionOptions, type StoredState } from "../settings";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -14,7 +14,7 @@ function render() {
   $<HTMLSelectElement>("strategy").value = state.options.strategy;
 }
 
-async function update(settings: Partial<ChemlySettings>, options: Partial<ExtensionOptions> = {}) {
+async function update(settings: Partial<AmperSettings>, options: Partial<ExtensionOptions> = {}) {
   state = { settings: { ...state.settings, ...settings }, options: { ...state.options, ...options } };
   await saveState(state);
 }
@@ -36,10 +36,10 @@ async function main() {
       return;
     }
     try {
-      const report = await chrome.tabs.sendMessage(tab.id, { type: "chemly:probe" });
+      const report = await chrome.tabs.sendMessage(tab.id, { type: "amper:probe" });
       out.textContent = JSON.stringify(report, null, 2);
     } catch {
-      out.textContent = "Chemly is not running in this tab. Open a Google Doc (docs.google.com/document/…) and reload it.";
+      out.textContent = "Amper is not running in this tab. Open a Google Doc (docs.google.com/document/…) and reload it.";
     }
   });
 }

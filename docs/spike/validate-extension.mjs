@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 const ext = fileURLToPath(new URL("../../apps/google-docs-extension/dist", import.meta.url));
 const DOC = "https://docs.google.com/document/d/195j9eDD3ccgjQRttHhJPymLJUCOUjs-jmwTrekvdjFE/edit";
-const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "chemly-")), {
+const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "amper-")), {
   channel: "chromium",
   headless: true,
   viewport: { width: 1280, height: 900 },
@@ -21,7 +21,7 @@ const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir()
 let [worker] = context.serviceWorkers();
 const page = await context.newPage();
 const logs = [];
-page.on("console", (m) => m.text().includes("[Chemly]") && logs.push(m.text()));
+page.on("console", (m) => m.text().includes("[Amper]") && logs.push(m.text()));
 await page.goto(DOC, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(8000);
 
@@ -30,49 +30,49 @@ const results = {};
 results.bridgeInMainWorld = await page.evaluate(() => {
   let raw;
   const on = (e) => (raw = e.detail);
-  document.addEventListener("chemly:bridge-response", on);
-  document.dispatchEvent(new CustomEvent("chemly:bridge-request", { detail: JSON.stringify({ op: "ping" }) }));
-  document.removeEventListener("chemly:bridge-response", on);
+  document.addEventListener("amper:bridge-response", on);
+  document.dispatchEvent(new CustomEvent("amper:bridge-request", { detail: JSON.stringify({ op: "ping" }) }));
+  document.removeEventListener("amper:bridge-response", on);
   return raw ?? null;
 });
 // Find the extension id and ask the content script for its probe via an extension page.
 const extPage = await context.newPage();
 await extPage.goto("chrome://extensions");
-const extensionId = await extPage.evaluate(async () => (await chrome.management.getAll()).find((e) => e.name === "Chemly")?.id);
+const extensionId = await extPage.evaluate(async () => (await chrome.management.getAll()).find((e) => e.name === "Amper")?.id);
 await extPage.close();
 results.extensionLoaded = !!extensionId;
 
 // Enable diagnostics so the content script logs (never text), then reload so options apply.
 const popup = await context.newPage();
 await popup.goto(`chrome-extension://${extensionId}/popup.html`);
-await popup.evaluate(() => chrome.storage.local.set({ "chemly.extension": { strategy: "keypress", verifyBeforeReplace: true, diagnostics: true } }));
+await popup.evaluate(() => chrome.storage.local.set({ "amper.extension": { strategy: "keypress", verifyBeforeReplace: true, diagnostics: true } }));
 await page.bringToFront();
 await page.reload({ waitUntil: "domcontentloaded" });
 await page.waitForTimeout(8000);
 await page.mouse.click(476, 180);
 await page.waitForTimeout(300);
-// Trusted typing: in view-only mode Docs ignores the characters, but Chemly must observe them.
+// Trusted typing: in view-only mode Docs ignores the characters, but Amper must observe them.
 await page.keyboard.type("capital sig");
 await page.waitForTimeout(300);
 results.overlayShownForTrustedTyping = await page.evaluate(() => {
-  const host = document.querySelector("chemly-suggestions");
+  const host = document.querySelector("amper-suggestions");
   const list = host?.shadowRoot?.querySelector(".list");
   return !!list && !list.hidden && list.textContent.includes("Σ");
 });
 results.overlayPosition = await page.evaluate(() => {
-  const r = document.querySelector("chemly-suggestions")?.shadowRoot?.querySelector(".list")?.getBoundingClientRect();
+  const r = document.querySelector("amper-suggestions")?.shadowRoot?.querySelector(".list")?.getBoundingClientRect();
   return r ? { x: Math.round(r.x), y: Math.round(r.y) } : null;
 });
-await page.screenshot({ path: process.argv[2] ?? join(tmpdir(), "chemly-ext.png") });
+await page.screenshot({ path: process.argv[2] ?? join(tmpdir(), "amper-ext.png") });
 await page.keyboard.press("Escape");
 await page.waitForTimeout(200);
-results.escapeDismissed = await page.evaluate(() => document.querySelector("chemly-suggestions")?.shadowRoot?.querySelector(".list")?.hidden ?? null);
+results.escapeDismissed = await page.evaluate(() => document.querySelector("amper-suggestions")?.shadowRoot?.querySelector(".list")?.hidden ?? null);
 await page.mouse.click(476, 180);
 results.probe = await popup.evaluate(async () => {
-  // Chemly has no "tabs" permission (by design), so URL filters are unavailable: ask every tab.
+  // Amper has no "tabs" permission (by design), so URL filters are unavailable: ask every tab.
   for (const tab of await chrome.tabs.query({})) {
     try {
-      const reply = await chrome.tabs.sendMessage(tab.id, { type: "chemly:probe" });
+      const reply = await chrome.tabs.sendMessage(tab.id, { type: "amper:probe" });
       if (reply) return reply;
     } catch {}
   }

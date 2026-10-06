@@ -1,16 +1,16 @@
 # Architecture
 
-Chemly is a deterministic, local chemistry-notation engine plus thin host adapters. The product is the Google Docs extension; the playground is a test harness that uses the same engine.
+Amper is a deterministic, local chemistry-notation engine plus thin host adapters. The product is the Google Docs extension; the playground is a test harness that uses the same engine.
 
 ## Packages
 
 | Package | Role | May depend on |
 |---|---|---|
-| `@chemly/chemistry` | Element table, species lexer/parser/AST, charge readings, electron configurations, reaction token structure | — |
-| `@chemly/renderer` | AST → Unicode (default), AST → ASCII (normalisation) | chemistry |
-| `@chemly/rules` | Data-driven named rules (Greek, symbols, script commands), registry, custom-rule compiler | — |
-| `@chemly/core` | Engine pipeline, confidence policy, autocomplete, session (transactions + reversal), controller, adapter contract | chemistry, renderer, rules |
-| `@chemly/shared-ui` | Framework-free suggestion popup (shadow DOM) | core (types) |
+| `@amper/chemistry` | Element table, species lexer/parser/AST, charge readings, electron configurations, reaction token structure | — |
+| `@amper/renderer` | AST → Unicode (default), AST → ASCII (normalisation) | chemistry |
+| `@amper/rules` | Data-driven named rules (Greek, symbols, script commands), registry, custom-rule compiler | — |
+| `@amper/core` | Engine pipeline, confidence policy, autocomplete, session (transactions + reversal), controller, adapter contract | chemistry, renderer, rules |
+| `@amper/shared-ui` | Framework-free suggestion popup (shadow DOM) | core (types) |
 | `apps/playground` | Textarea harness with debug panel | core, shared-ui |
 | `apps/google-docs-extension` | MV3 extension: Docs adapter, MAIN-world bridge, popup | core, shared-ui |
 
@@ -19,7 +19,7 @@ The four engine packages compile against an **ES-only lib with no DOM types** (`
 ## Typing path
 
 ```
-host keystroke ─▶ EditorAdapter ─▶ ChemlyController ─▶ ChemlySession ─▶ ChemlyEngine.evaluate()
+host keystroke ─▶ EditorAdapter ─▶ AmperController ─▶ AmperSession ─▶ AmperEngine.evaluate()
                      ▲                                       │              │
                      │                                       │   bounded window (256 chars)
                      │                                       │   current line → candidates
@@ -27,7 +27,7 @@ host keystroke ─▶ EditorAdapter ─▶ ChemlyController ─▶ ChemlySession
                      │                                       │   conflict resolution (priority, span, confidence)
                      │                                       │   band: ≥0.95 auto · 0.70–0.94 suggest · else none
                      │                                       ▼
-                     └──── TailRewrite {deleteCount, insertText} + ChemlyTransaction
+                     └──── TailRewrite {deleteCount, insertText} + AmperTransaction
 ```
 
 - **Boundaries.** Space, NBSP, Enter and the safe punctuation `, ; : ! ?` trigger evaluation. The period is not a trigger ("C3.ai", "v2.0", "2.5" continue past it) and neither is `)`, which is formula syntax. "H2O." converts at the next Space or Enter, keeping the period.
@@ -56,3 +56,14 @@ host keystroke ─▶ EditorAdapter ─▶ ChemlyController ─▶ ChemlySession
 - No network access anywhere in the engine or extension. Extension storage is `chrome.storage.local`. The only permission is `storage`; host access is limited to `https://docs.google.com/document/*`.
 - Diagnostics log event names, rule ids and lengths, never document text.
 - Median decision time is asserted to be under 5 ms (measured ≈ 0.1 ms in the playground debug panel). The context window is fixed at 256 characters, independent of document length.
+
+## Legacy name (Chemly → Amper)
+
+The project was renamed from Chemly to Amper on 2026-10-06. The only intentional remaining references to the old name are the pre-rename storage keys. They exist solely so existing users keep their settings:
+
+| Key | Where | Handling |
+|---|---|---|
+| `chemly.settings`, `chemly.extension` | `chrome.storage.local` (extension) | `migrateLegacyStorage` copies each to its `amper.*` key once (never overwriting newer data), then removes it |
+| `chemly.playground.settings` | `localStorage` (playground) | Same, in `loadSettings` |
+
+Tests that exercise the migration necessarily name these keys. Do not remove the legacy keys until users of pre-rename builds no longer need the migration.

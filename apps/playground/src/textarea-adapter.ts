@@ -1,13 +1,13 @@
 import type {
   CaretAnchor,
-  ChemlySuggestion,
+  AmperSuggestion,
   Disposable,
   EditorAdapter,
   EditorInputEvent,
   EditorKeyEvent,
   TailRewrite,
-} from "@chemly/core";
-import type { SuggestionList } from "@chemly/shared-ui";
+} from "@amper/core";
+import type { SuggestionList } from "@amper/shared-ui";
 import { caretCoordinates } from "./caret-coordinates";
 
 const listen = <K extends keyof HTMLElementEventMap>(
@@ -26,7 +26,7 @@ const listen = <K extends keyof HTMLElementEventMap>(
  */
 export class TextareaAdapter implements EditorAdapter {
   readonly capabilities = { interceptKeys: true };
-  /** Caret position after the last input Chemly observed or made; anything else is a caret move. */
+  /** Caret position after the last input Amper observed or made; anything else is a caret move. */
   private knownCaret: number;
   undoIntegrated = true;
 
@@ -122,7 +122,7 @@ export class TextareaAdapter implements EditorAdapter {
     return { dispose: () => (start.dispose(), end.dispose()) };
   }
 
-  showSuggestions(items: ChemlySuggestion[], selected: number, anchor?: CaretAnchor): void {
+  showSuggestions(items: AmperSuggestion[], selected: number, anchor?: CaretAnchor): void {
     this.overlay.show(items, selected, anchor ?? caretCoordinates(this.el, this.el.selectionStart));
   }
 

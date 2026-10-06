@@ -19,9 +19,9 @@ const call = (request) =>
   page.evaluate((request) => {
     let raw;
     const on = (e) => (raw = e.detail);
-    document.addEventListener("chemly:bridge-response", on);
-    document.dispatchEvent(new CustomEvent("chemly:bridge-request", { detail: JSON.stringify(request) }));
-    document.removeEventListener("chemly:bridge-response", on);
+    document.addEventListener("amper:bridge-response", on);
+    document.dispatchEvent(new CustomEvent("amper:bridge-request", { detail: JSON.stringify(request) }));
+    document.removeEventListener("amper:bridge-response", on);
     return raw ? JSON.parse(raw) : { ok: false, error: "no answer" };
   }, request);
 const placeCaretAtEnd = async () => { await page.mouse.click(600, 180); await page.mouse.click(476, 180); await page.waitForTimeout(300); };

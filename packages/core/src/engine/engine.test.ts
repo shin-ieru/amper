@@ -3,12 +3,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
 import { acronymStem } from "../confidence/context";
-import { resolveSettings, type ChemlyMode } from "../types";
+import { resolveSettings, type AmperMode } from "../types";
 import { createEngine } from "./engine";
 import { trimFormulaToken } from "./text";
 
 const engine = createEngine();
-const evaluate = (textBefore: string, mode: ChemlyMode = "standard") =>
+const evaluate = (textBefore: string, mode: AmperMode = "standard") =>
   engine.evaluate({ textBefore, trigger: "space" }, resolveSettings({ mode }));
 
 describe("named symbols", () => {
@@ -114,7 +114,7 @@ describe("autocomplete", () => {
 describe("robustness and performance (spec §44, §52)", () => {
   it("never throws on arbitrary input in either mode", () => {
     fc.assert(
-      fc.property(fc.string({ unit: "binary", maxLength: 300 }), fc.constantFrom<ChemlyMode>("standard", "chemistry"), (text, mode) => {
+      fc.property(fc.string({ unit: "binary", maxLength: 300 }), fc.constantFrom<AmperMode>("standard", "chemistry"), (text, mode) => {
         evaluate(text, mode);
         engine.complete(text, resolveSettings({ mode }));
       }),

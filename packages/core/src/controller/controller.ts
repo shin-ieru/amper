@@ -1,13 +1,13 @@
 import { CONTEXT_CHARS_BEFORE, boundaryTrigger } from "../engine/text";
-import type { ChemlySession, SessionOutcome } from "../history/session";
-import type { ChemlySuggestion, ChemlyTransaction, Disposable, EngineDecision } from "../types";
+import type { AmperSession, SessionOutcome } from "../history/session";
+import type { AmperSuggestion, AmperTransaction, Disposable, EngineDecision } from "../types";
 import type { ApplyResult, EditorAdapter, EditorInputEvent, EditorKeyEvent } from "./adapter";
 
 export type ControllerEvent =
   | { type: "decision"; decision: EngineDecision }
-  | { type: "applied"; transaction: ChemlyTransaction }
-  | { type: "apply-failed"; transaction: ChemlyTransaction }
-  | { type: "suggestions"; items: ChemlySuggestion[]; selected: number }
+  | { type: "applied"; transaction: AmperTransaction }
+  | { type: "apply-failed"; transaction: AmperTransaction }
+  | { type: "suggestions"; items: AmperSuggestion[]; selected: number }
   | { type: "reset"; reason: string };
 
 export interface ControllerOptions {
@@ -18,16 +18,16 @@ export interface ControllerOptions {
 const isPlain = (e: EditorKeyEvent) => !e.ctrlKey && !e.metaKey && !e.altKey;
 
 /**
- * Wires an EditorAdapter to a ChemlySession. Host-agnostic: the playground,
+ * Wires an EditorAdapter to a AmperSession. Host-agnostic: the playground,
  * the Google Docs content script and the in-memory test editor all use it.
  */
-export class ChemlyController {
+export class AmperController {
   private applying = false;
   private readonly contextChars: number;
 
   constructor(
     private readonly adapter: EditorAdapter,
-    private readonly session: ChemlySession,
+    private readonly session: AmperSession,
     private readonly options: ControllerOptions = {},
   ) {
     this.contextChars = options.contextChars ?? CONTEXT_CHARS_BEFORE;
@@ -59,7 +59,7 @@ export class ChemlyController {
     this.syncSuggestions();
   }
 
-  /** True while Chemly's own rewrite is being applied; adapters may use it to ignore echoes. */
+  /** True while Amper's own rewrite is being applied; adapters may use it to ignore echoes. */
   get isApplying(): boolean {
     return this.applying;
   }
@@ -136,7 +136,7 @@ export class ChemlyController {
     this.syncSuggestions();
   }
 
-  private apply(transaction: ChemlyTransaction, rewrite: { deleteCount: number; insertText: string }): void {
+  private apply(transaction: AmperTransaction, rewrite: { deleteCount: number; insertText: string }): void {
     this.applying = true;
     const finish = (result: ApplyResult) => {
       this.applying = false;

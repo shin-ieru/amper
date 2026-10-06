@@ -1,5 +1,5 @@
 {
-  "name": "chemly",
+  "name": "amper",
   "private": true,
   "version": "0.1.0",
   "description": "Chemistry autocorrect and autocomplete for Google Docs",
@@ -12,9 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p packages/tsconfig.json && tsc -p packages/shared-ui/tsconfig.json && tsc -p apps/playground/tsconfig.json && tsc -p apps/google-docs-extension/tsconfig.json && tsc -p tests/tsconfig.json",
-    "dev": "npm run dev -w @chemly/playground",
-    "build": "npm run build -w @chemly/playground && npm run build -w @chemly/google-docs-extension",
-    "build:extension": "npm run build -w @chemly/google-docs-extension",
+    "dev": "npm run dev -w @amper/playground",
+    "build": "npm run build -w @amper/playground && npm run build -w @amper/google-docs-extension",
+    "build:extension": "npm run build -w @amper/google-docs-extension",
     "e2e": "playwright test",
     "check": "npm run typecheck && npm test"
   },

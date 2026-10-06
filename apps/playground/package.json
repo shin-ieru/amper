@@ -1,5 +1,5 @@
 {
-  "name": "@chemly/playground",
+  "name": "@amper/playground",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@chemly/core": "*",
-    "@chemly/shared-ui": "*"
+    "@amper/core": "*",
+    "@amper/shared-ui": "*"
   }
 }

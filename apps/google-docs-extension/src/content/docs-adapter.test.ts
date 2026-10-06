@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { SuggestionList } from "@chemly/shared-ui";
+import type { SuggestionList } from "@amper/shared-ui";
 import type { BridgeRequest, BridgeResponse } from "./bridge-protocol";
 import { compareDocsText, DocsAdapter, normalizeDocsText } from "./docs-adapter";
 

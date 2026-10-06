@@ -1,4 +1,4 @@
-import type { ConfigToken, FormulaComponent, FormulaNode, ReactionItem } from "@chemly/chemistry";
+import type { ConfigToken, FormulaComponent, FormulaNode, ReactionItem } from "@amper/chemistry";
 
 const SUBSCRIPT = ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"] as const;
 const SUPERSCRIPT = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"] as const;
@@ -32,7 +32,7 @@ const UNICODE: Style = {
   dot: ADDUCT_DOT,
 };
 
-/** Chemly's explicit ASCII input syntax: the normal form for search and round-trips. */
+/** Amper's explicit ASCII input syntax: the normal form for search and round-trips. */
 const ASCII: Style = {
   count: String,
   mass: (n) => `^${n}`,

@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Chemly",
-  "short_name": "Chemly",
+  "name": "Amper",
+  "short_name": "Amper",
   "version": "0.1.0",
   "description": "Chemistry autocorrect and autocomplete for Google Docs. Runs locally.",
   "minimum_chrome_version": "111",
   "permissions": ["storage"],
-  "action": { "default_title": "Chemly", "default_popup": "popup.html" },
+  "action": { "default_title": "Amper", "default_popup": "popup.html" },
   "content_scripts": [
     {
       "matches": ["https://docs.google.com/document/*"],

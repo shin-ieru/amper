@@ -13,7 +13,7 @@ async function open(page: Page, mode: "standard" | "chemistry" = "standard") {
   return editor;
 }
 
-const suggestionItems = (page: Page) => page.locator("chemly-suggestions").locator(".item");
+const suggestionItems = (page: Page) => page.locator("amper-suggestions").locator(".item");
 
 test.describe("milestone 1 in a real browser", () => {
   test("capital sigma → Σ, Backspace restores", async ({ page }) => {
@@ -250,4 +250,20 @@ test.describe("product milestone: chemistry-aware by default (no profile selecte
     await page.keyboard.type(text);
     await expect(editor).toHaveValue(text);
   });
+});
+
+test("settings saved under the pre-rename key survive the Chemly → Amper rename", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem("chemly.playground.settings", JSON.stringify({ mode: "chemistry", categories: { greek: false } }));
+  });
+  await page.reload();
+  await expect(page.getByLabel("Greek")).not.toBeChecked();
+  const keys = await page.evaluate(() => Object.keys(localStorage));
+  expect(keys).toEqual(["amper.playground.settings"]);
+  const editor = page.locator("#editor");
+  await editor.click();
+  await page.keyboard.type("capital sigma H2O ");
+  await expect(editor).toHaveValue("capital sigma H₂O ");
 });

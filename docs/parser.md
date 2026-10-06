@@ -1,6 +1,6 @@
 # Species, reaction and configuration parsers
 
-`@chemly/chemistry` parses notation into ASTs; `@chemly/renderer` renders them; `@chemly/core/confidence` scores them. No module guesses intent silently: the parser records what was written, `charges.ts` lists the readings, and the policy decides between autocorrect, suggestion and nothing.
+`@amper/chemistry` parses notation into ASTs; `@amper/renderer` renders them; `@amper/core/confidence` scores them. No module guesses intent silently: the parser records what was written, `charges.ts` lists the readings, and the policy decides between autocorrect, suggestion and nothing.
 
 ## Species grammar
 
@@ -87,7 +87,7 @@ Reaction context is a positive signal: the token follows `+` or an arrow, which 
 
 ## Case recovery
 
-Users should not need IUPAC capitalisation for Chemly to help. When a token does not parse as typed and contains lowercase letters, `caseCandidates` enumerates every way to split each letter run into element symbols case-insensitively. Digits, brackets, charges and a trailing state (`(aq)` is never re-cased) are kept as written. Each candidate is parsed and scored by the normal species pipeline. Then:
+Users should not need IUPAC capitalisation for Amper to help. When a token does not parse as typed and contains lowercase letters, `caseCandidates` enumerates every way to split each letter run into element symbols case-insensitively. Digits, brackets, charges and a trailing state (`(aq)` is never re-cased) are kept as written. Each candidate is parsed and scored by the normal species pipeline. Then:
 
 | Situation | Behaviour | Example |
 |---|---|---|

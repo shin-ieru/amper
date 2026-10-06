@@ -14,7 +14,7 @@ export default defineConfig({
   // A production build behind `vite preview`, on its own port: a dev server can reload
   // the page mid-test when it re-optimises dependencies, which made one run flaky.
   webServer: {
-    command: "npm run build -w @chemly/playground && npm run preview -w @chemly/playground -- --port 5198",
+    command: "npm run build -w @amper/playground && npm run preview -w @amper/playground -- --port 5198",
     url: "http://localhost:5198",
     reuseExistingServer: false,
     timeout: 60_000,

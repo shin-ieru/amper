@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseFormula } from "@chemly/chemistry";
+import { parseFormula } from "@amper/chemistry";
 import { formulaToAscii, formulaToUnicode, toSubscriptDigits, toSuperscriptDigits } from "./index";
 
 function render(input: string) {

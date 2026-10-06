@@ -1,11 +1,11 @@
-import { recognitionToSuggestion, type ChemlyEngine } from "../engine/engine";
+import { recognitionToSuggestion, type AmperEngine } from "../engine/engine";
 import { boundaryTrigger } from "../engine/text";
 import { SUGGEST_CAP } from "../confidence/policy";
 import type {
-  ChemlySettings,
-  ChemlySuggestion,
-  ChemlyTransaction,
-  ChemlyTrigger,
+  AmperSettings,
+  AmperSuggestion,
+  AmperTransaction,
+  AmperTrigger,
   EngineDecision,
   Recognition,
   TailRewrite,
@@ -13,11 +13,11 @@ import type {
 
 export type SessionOutcome =
   | { kind: "none"; decision?: EngineDecision }
-  | { kind: "rewrite"; rewrite: TailRewrite; transaction: ChemlyTransaction; decision?: EngineDecision }
-  | { kind: "suggest"; suggestions: ChemlySuggestion[]; decision?: EngineDecision };
+  | { kind: "rewrite"; rewrite: TailRewrite; transaction: AmperTransaction; decision?: EngineDecision }
+  | { kind: "suggest"; suggestions: AmperSuggestion[]; decision?: EngineDecision };
 
 interface PendingSuggestions {
-  items: ChemlySuggestion[];
+  items: AmperSuggestion[];
   selected: number;
   /** Text before the caret when offered; acceptance is refused if it changed. */
   context: string;
@@ -48,8 +48,8 @@ const nextId = () => `tx-${Date.now().toString(36)}-${(++sequence).toString(36)}
  * the next boundary. Any other input, caret movement or external change
  * cancels the one-shot restore.
  */
-export class ChemlySession {
-  private pending: ChemlyTransaction | undefined;
+export class AmperSession {
+  private pending: AmperTransaction | undefined;
   private suppressed: string | undefined;
   private suggestions: PendingSuggestions | undefined;
   private composing = false;
@@ -60,19 +60,19 @@ export class ChemlySession {
   private readonly demoteAfter: number;
 
   constructor(
-    private readonly engine: ChemlyEngine,
-    private readonly settings: () => ChemlySettings,
+    private readonly engine: AmperEngine,
+    private readonly settings: () => AmperSettings,
     options: SessionOptions = {},
   ) {
     this.now = options.now ?? Date.now;
     this.demoteAfter = options.demoteAfterRestores ?? 2;
   }
 
-  get pendingTransaction(): ChemlyTransaction | undefined {
+  get pendingTransaction(): AmperTransaction | undefined {
     return this.pending;
   }
 
-  get activeSuggestions(): { items: ChemlySuggestion[]; selected: number } | undefined {
+  get activeSuggestions(): { items: AmperSuggestion[]; selected: number } | undefined {
     return this.suggestions && { items: this.suggestions.items, selected: this.suggestions.selected };
   }
 
@@ -127,7 +127,7 @@ export class ChemlySession {
   }
 
   /**
-   * Backspace is about to be handled by a host that lets Chemly intercept it.
+   * Backspace is about to be handled by a host that lets Amper intercept it.
    * Returns a restore rewrite when the last conversion is intact before the caret.
    */
   backspacePressed(textBeforeCaret: string): SessionOutcome {
@@ -194,9 +194,9 @@ export class ChemlySession {
   /**
    * The host replaced different text than modelled, differing only by host-side
    * changes such as auto-capitalisation. Record what was really there so
-   * Backspace restores the document's text, not Chemly's guess of it.
+   * Backspace restores the document's text, not Amper's guess of it.
    */
-  amendTransaction(id: string, removedTail: string): ChemlyTransaction | undefined {
+  amendTransaction(id: string, removedTail: string): AmperTransaction | undefined {
     const tx = this.pending;
     if (!tx || tx.id !== id || removedTail.length !== tx.removedTail.length) return undefined;
     const boundaryLength = tx.removedTail.length - tx.restoreText.length;
@@ -225,7 +225,7 @@ export class ChemlySession {
     this.composing = false;
   }
 
-  /** Caret moved, selection changed, focus left, or the host changed text Chemly did not observe. */
+  /** Caret moved, selection changed, focus left, or the host changed text Amper did not observe. */
   reset(): void {
     this.pending = undefined;
     this.suppressed = undefined;
@@ -236,7 +236,7 @@ export class ChemlySession {
     r: Recognition,
     textBeforeCaret: string,
     boundary: string,
-    trigger: ChemlyTrigger,
+    trigger: AmperTrigger,
     decision: EngineDecision,
   ): SessionOutcome {
     const textBefore = textBeforeCaret.slice(0, -boundary.length);
@@ -264,7 +264,7 @@ export class ChemlySession {
     };
   }
 
-  private restore(tx: ChemlyTransaction, presentTail: string, textBeforeCaret: string): SessionOutcome {
+  private restore(tx: AmperTransaction, presentTail: string, textBeforeCaret: string): SessionOutcome {
     this.pending = undefined;
     this.suggestions = undefined;
     this.reject(tx);
@@ -288,7 +288,7 @@ export class ChemlySession {
   }
 
   /** Record that the user reverted a conversion: demotion counts and frozen tokens. */
-  private reject(tx: ChemlyTransaction): void {
+  private reject(tx: AmperTransaction): void {
     this.restoreCounts.set(tx.originalText, (this.restoreCounts.get(tx.originalText) ?? 0) + 1);
     const before = tx.originalText.split(/\s+/);
     const after = tx.replacementText.split(/\s+/);
@@ -299,7 +299,7 @@ export class ChemlySession {
   }
 
   private offer(
-    items: ChemlySuggestion[],
+    items: AmperSuggestion[],
     textBeforeCaret: string,
     boundary: string,
     decision?: EngineDecision,
@@ -309,9 +309,9 @@ export class ChemlySession {
   }
 
   private transaction(
-    fields: Omit<ChemlyTransaction, "id" | "kind" | "timestamp" | "reversible" | "endOffsetAfter"> &
-      Partial<Pick<ChemlyTransaction, "kind" | "reversible">>,
-  ): ChemlyTransaction {
+    fields: Omit<AmperTransaction, "id" | "kind" | "timestamp" | "reversible" | "endOffsetAfter"> &
+      Partial<Pick<AmperTransaction, "kind" | "reversible">>,
+  ): AmperTransaction {
     return {
       id: nextId(),
       kind: "convert",

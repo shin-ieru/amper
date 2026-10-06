@@ -1,18 +1,18 @@
 import {
-  ChemlyController,
-  ChemlySession,
+  AmperController,
+  AmperSession,
   createEngine,
   resolveSettings,
-  type ChemlyEngine,
-  type ChemlySettingsInput,
-  type ChemlySuggestion,
+  type AmperEngine,
+  type AmperSettingsInput,
+  type AmperSuggestion,
   type ControllerEvent,
   type Disposable,
   type EditorAdapter,
   type EditorInputEvent,
   type EditorKeyEvent,
   type TailRewrite,
-} from "@chemly/core";
+} from "@amper/core";
 
 type Handler<T> = (event: T) => void;
 
@@ -24,7 +24,7 @@ type Handler<T> = (event: T) => void;
 export class VirtualEditor implements EditorAdapter {
   text = "";
   caret = 0;
-  visibleSuggestions: { items: ChemlySuggestion[]; selected: number } | undefined;
+  visibleSuggestions: { items: AmperSuggestion[]; selected: number } | undefined;
   readonly capabilities: { interceptKeys: boolean };
 
   private readonly undoStack: { text: string; caret: number }[] = [];
@@ -65,7 +65,7 @@ export class VirtualEditor implements EditorAdapter {
     this.compositionHandlers.push(handler);
     return { dispose: () => (this.compositionHandlers = this.compositionHandlers.filter((h) => h !== handler)) };
   }
-  showSuggestions(items: ChemlySuggestion[], selected: number): void {
+  showSuggestions(items: AmperSuggestion[], selected: number): void {
     this.visibleSuggestions = { items, selected };
   }
   hideSuggestions(): void {
@@ -150,14 +150,14 @@ export class VirtualEditor implements EditorAdapter {
   }
 }
 
-const sharedEngine: ChemlyEngine = createEngine();
+const sharedEngine: AmperEngine = createEngine();
 
-export function setup(settings: ChemlySettingsInput = {}, options: { interceptKeys?: boolean } = {}) {
+export function setup(settings: AmperSettingsInput = {}, options: { interceptKeys?: boolean } = {}) {
   const editor = new VirtualEditor(options);
   const current = { settings: resolveSettings(settings) };
-  const session = new ChemlySession(sharedEngine, () => current.settings);
+  const session = new AmperSession(sharedEngine, () => current.settings);
   const events: ControllerEvent[] = [];
-  const controller = new ChemlyController(editor, session, { onEvent: (e) => events.push(e) });
+  const controller = new AmperController(editor, session, { onEvent: (e) => events.push(e) });
   controller.start();
   return { editor, session, events, current };
 }

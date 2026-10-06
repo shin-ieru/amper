@@ -42,7 +42,7 @@ function segment(run: string, limit: number): string[][] {
  * a trailing physical state ("(aq)") is never re-cased. Every letter run must
  * split completely into IUPAC symbols, so "bacon2" and "macbook" yield
  * candidates only if every letter belongs to a symbol. This function only
- * enumerates; ranking and confidence live in @chemly/core.
+ * enumerates; ranking and confidence live in @amper/core.
  */
 export function caseCandidates(token: string, limit = MAX_CASE_CANDIDATES): string[] {
   const state = STATE_SUFFIX.exec(token)?.[0] ?? "";

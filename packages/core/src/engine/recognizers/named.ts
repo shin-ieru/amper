@@ -1,4 +1,4 @@
-import { GREEK_QUALIFIER_WORDS, type NamedRule, type RuleRegistry } from "@chemly/rules";
+import { GREEK_QUALIFIER_WORDS, type NamedRule, type RuleRegistry } from "@amper/rules";
 import { COPULAS, nonProseReason } from "../../confidence/context";
 import { SUGGEST_CAP } from "../../confidence/policy";
 import type { Recognition, Rejection } from "../../types";

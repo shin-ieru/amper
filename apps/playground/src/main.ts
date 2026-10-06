@@ -1,34 +1,44 @@
 import {
-  ChemlyController,
-  ChemlySession,
+  AmperController,
+  AmperSession,
   confidenceBand,
   createEngine,
   productSettings,
   resolveSettings,
-  type ChemlySettings,
-  type ChemlyTransaction,
+  type AmperSettings,
+  type AmperTransaction,
   type ControllerEvent,
   type CustomRule,
   type EngineDecision,
   type ToggleableCategory,
-} from "@chemly/core";
-import { SuggestionList } from "@chemly/shared-ui";
+} from "@amper/core";
+import { SuggestionList } from "@amper/shared-ui";
 import { TextareaAdapter } from "./textarea-adapter";
 
-const STORAGE_KEY = "chemly.playground.settings";
+const STORAGE_KEY = "amper.playground.settings";
+/** Pre-rename key (Chemly → Amper); read once and moved so saved settings survive. */
+const LEGACY_STORAGE_KEY = "chemly.playground.settings";
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 
-function loadSettings(): ChemlySettings {
+function loadSettings(): AmperSettings {
   try {
     // The harness mirrors the product: chemistry-aware by default; the dev switch may override.
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? resolveSettings({ mode: "chemistry", ...(JSON.parse(raw) as Partial<ChemlySettings>) }) : productSettings();
+    let raw = localStorage.getItem(STORAGE_KEY);
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy !== null) {
+      if (raw === null) {
+        raw = legacy;
+        localStorage.setItem(STORAGE_KEY, legacy);
+      }
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+    return raw ? resolveSettings({ mode: "chemistry", ...(JSON.parse(raw) as Partial<AmperSettings>) }) : productSettings();
   } catch {
     return productSettings();
   }
 }
 
-function saveSettings(settings: ChemlySettings) {
+function saveSettings(settings: AmperSettings) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch {
@@ -40,11 +50,11 @@ let settings = loadSettings();
 
 const editor = $<HTMLTextAreaElement>("#editor");
 const engine = createEngine();
-const session = new ChemlySession(engine, () => settings);
-let controller: ChemlyController;
+const session = new AmperSession(engine, () => settings);
+let controller: AmperController;
 const overlay = new SuggestionList(document.body, { onPick: (index) => controller.accept(index) });
 const adapter = new TextareaAdapter(editor, overlay);
-controller = new ChemlyController(adapter, session, { onEvent: onControllerEvent });
+controller = new AmperController(adapter, session, { onEvent: onControllerEvent });
 controller.start();
 
 // ---- settings UI ------------------------------------------------------------
@@ -67,7 +77,7 @@ function parseCustomRules(text: string): CustomRule[] {
 function renderSettings() {
   document.querySelectorAll<HTMLInputElement>("input[name=mode]").forEach((r) => (r.checked = r.value === settings.mode));
   document.querySelectorAll<HTMLInputElement>("[data-setting]").forEach((box) => {
-    box.checked = Boolean(settings[box.dataset.setting as keyof ChemlySettings]);
+    box.checked = Boolean(settings[box.dataset.setting as keyof AmperSettings]);
   });
   document.querySelectorAll<HTMLInputElement>("[data-category]").forEach((box) => {
     box.checked = settings.categories[box.dataset.category as ToggleableCategory];
@@ -76,7 +86,7 @@ function renderSettings() {
   $<HTMLTextAreaElement>("#custom").value = settings.customRules.map((r) => `${r.input} => ${r.output}`).join("\n");
 }
 
-function update(patch: Partial<ChemlySettings>) {
+function update(patch: Partial<AmperSettings>) {
   settings = resolveSettings({ ...settings, ...patch });
   saveSettings(settings);
   session.reset();
@@ -84,7 +94,7 @@ function update(patch: Partial<ChemlySettings>) {
 
 document.querySelectorAll<HTMLInputElement>("input[name=mode]").forEach((radio) =>
   radio.addEventListener("change", () => {
-    update({ mode: radio.value as ChemlySettings["mode"] });
+    update({ mode: radio.value as AmperSettings["mode"] });
     status(radio.value === "chemistry" ? "Product profile (chemistry-aware)" : "Conservative profile (dev)");
   }),
 );
@@ -163,7 +173,7 @@ function renderDecision(decision: EngineDecision) {
   debugEl.replaceChildren(...nodes);
 }
 
-function renderTransaction(tx: ChemlyTransaction) {
+function renderTransaction(tx: AmperTransaction) {
   const li = document.createElement("li");
   const kind = Object.assign(document.createElement("span"), { className: "kind", textContent: tx.kind });
   const from = Object.assign(document.createElement("code"), { textContent: tx.kind === "convert" ? tx.originalText : tx.originalText });
@@ -208,6 +218,6 @@ function onControllerEvent(event: ControllerEvent) {
 }
 
 // Exposed for E2E tests and manual debugging in DevTools.
-Object.assign(window, { chemly: { engine, session, get settings() { return settings; }, confidenceBand, adapter } });
+Object.assign(window, { amper: { engine, session, get settings() { return settings; }, confidenceBand, adapter } });
 
 editor.focus();

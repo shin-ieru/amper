@@ -1,4 +1,4 @@
-import { productSettings, type ChemlySettings, type ChemlySettingsInput } from "@chemly/core";
+import { productSettings, type AmperSettings, type AmperSettingsInput } from "@amper/core";
 import type { InsertStrategy } from "./content/bridge-protocol";
 
 /** Extension-only switches used by the spike; not part of the engine's settings. */
@@ -15,21 +15,57 @@ export const DEFAULT_EXTENSION_OPTIONS: ExtensionOptions = {
   diagnostics: false,
 };
 
-const SETTINGS_KEY = "chemly.settings";
-const OPTIONS_KEY = "chemly.extension";
+const SETTINGS_KEY = "amper.settings";
+const OPTIONS_KEY = "amper.extension";
+
+/**
+ * Storage keys written before the Chemly → Amper rename. Retained only so that
+ * existing users keep their settings; migrateLegacyStorage moves them once.
+ */
+export const LEGACY_STORAGE_KEYS: Readonly<Record<string, string>> = {
+  "chemly.settings": SETTINGS_KEY,
+  "chemly.extension": OPTIONS_KEY,
+};
+
+/** The subset of chrome.storage.local used here (injectable for tests). */
+export interface StorageAreaLike {
+  get(keys: string[]): Promise<Record<string, unknown>>;
+  set(items: Record<string, unknown>): Promise<void>;
+  remove(keys: string[]): Promise<void>;
+}
+
+/**
+ * One-time, idempotent migration of pre-rename keys. A value already stored
+ * under the new key always wins; legacy keys are removed once copied.
+ */
+export async function migrateLegacyStorage(area: StorageAreaLike): Promise<string[]> {
+  const legacy = Object.keys(LEGACY_STORAGE_KEYS);
+  const stored = await area.get([...legacy, ...Object.values(LEGACY_STORAGE_KEYS)]);
+  const present = legacy.filter((key) => stored[key] !== undefined);
+  if (present.length === 0) return [];
+  const copy: Record<string, unknown> = {};
+  for (const key of present) {
+    const target = LEGACY_STORAGE_KEYS[key]!;
+    if (stored[target] === undefined) copy[target] = stored[key];
+  }
+  if (Object.keys(copy).length > 0) await area.set(copy);
+  await area.remove(present);
+  return present;
+}
 
 export interface StoredState {
-  settings: ChemlySettings;
+  settings: AmperSettings;
   options: ExtensionOptions;
 }
 
 // chrome.storage.local, not sync: custom rules and never-convert lists stay on this device (spec §45).
 export async function loadState(): Promise<StoredState> {
+  await migrateLegacyStorage(chrome.storage.local as unknown as StorageAreaLike);
   const stored = await chrome.storage.local.get([SETTINGS_KEY, OPTIONS_KEY]);
   return {
-    // Product profile: an enabled Chemly is chemistry-aware. Any "mode" stored by
+    // Product profile: an enabled Amper is chemistry-aware. Any "mode" stored by
     // earlier builds is ignored rather than allowed to silence formula autocorrect.
-    settings: productSettings((stored[SETTINGS_KEY] as ChemlySettingsInput | undefined) ?? {}),
+    settings: productSettings((stored[SETTINGS_KEY] as AmperSettingsInput | undefined) ?? {}),
     options: { ...DEFAULT_EXTENSION_OPTIONS, ...(stored[OPTIONS_KEY] as Partial<ExtensionOptions> | undefined) },
   };
 }

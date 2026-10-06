@@ -1,10 +1,10 @@
-import { compileCustomRules, createDefaultRegistry, normalizePhrase, type CustomRule, type RuleRegistry } from "@chemly/rules";
+import { compileCustomRules, createDefaultRegistry, normalizePhrase, type CustomRule, type RuleRegistry } from "@amper/rules";
 import { confidenceBand, SUGGEST_THRESHOLD } from "../confidence/policy";
 import { TOGGLEABLE_CATEGORIES } from "../types";
 import type {
-  ChemlySettings,
-  ChemlySuggestion,
-  ChemlyTrigger,
+  AmperSettings,
+  AmperSuggestion,
+  AmperTrigger,
   DebugInfo,
   EngineDecision,
   Recognition,
@@ -21,7 +21,7 @@ import { CONTEXT_CHARS_BEFORE, lineStart } from "./text";
 export interface EvaluateInput {
   /** Text before the caret, excluding the boundary character that triggered evaluation. */
   textBefore: string;
-  trigger: ChemlyTrigger;
+  trigger: AmperTrigger;
   /**
    * Tokens the user explicitly reverted (Backspace restore, Undo). Multi-token
    * rewrites (reactions, configurations) leave them exactly as typed.
@@ -29,11 +29,11 @@ export interface EvaluateInput {
   frozen?: ReadonlySet<string>;
 }
 
-export interface ChemlyEngine {
+export interface AmperEngine {
   /** Decide what to do at a boundary (spec §32 pipeline). Pure and deterministic. */
-  evaluate(input: EvaluateInput, settings: ChemlySettings): EngineDecision;
+  evaluate(input: EvaluateInput, settings: AmperSettings): EngineDecision;
   /** Non-destructive completions for a partially typed phrase at the caret. */
-  complete(textBefore: string, settings: ChemlySettings): ChemlySuggestion[];
+  complete(textBefore: string, settings: AmperSettings): AmperSuggestion[];
   readonly registry: RuleRegistry;
 }
 
@@ -46,11 +46,11 @@ const EMPTY: ReadonlySet<string> = new Set();
 type Clock = { now(): number };
 const clock: Clock = (globalThis as { performance?: Clock }).performance ?? Date;
 
-export function createEngine(options: EngineOptions = {}): ChemlyEngine {
+export function createEngine(options: EngineOptions = {}): AmperEngine {
   const base = options.registry ?? createDefaultRegistry();
   const withCustom = new WeakMap<readonly CustomRule[], RuleRegistry>();
 
-  const registryFor = (settings: ChemlySettings): RuleRegistry => {
+  const registryFor = (settings: AmperSettings): RuleRegistry => {
     if (!settings.categories.custom || settings.customRules.length === 0) return base;
     let registry = withCustom.get(settings.customRules);
     if (!registry) {
@@ -65,7 +65,7 @@ export function createEngine(options: EngineOptions = {}): ChemlyEngine {
     return { text: bounded, offset: text.length - bounded.length, from: lineStart(bounded) };
   };
 
-  function evaluate(input: EvaluateInput, settings: ChemlySettings): EngineDecision {
+  function evaluate(input: EvaluateInput, settings: AmperSettings): EngineDecision {
     const started = clock.now();
     const { text, offset, from } = contextWindow(input.textBefore);
     const rejections: Rejection[] = [];
@@ -129,7 +129,7 @@ export function createEngine(options: EngineOptions = {}): ChemlyEngine {
     return { action: "none", debug: debug(recognitions) };
   }
 
-  function complete(textBefore: string, settings: ChemlySettings): ChemlySuggestion[] {
+  function complete(textBefore: string, settings: AmperSettings): AmperSuggestion[] {
     if (!settings.enabled || !settings.autocomplete) return [];
     const { text, offset, from } = contextWindow(textBefore);
     const never = new Set(settings.neverConvert.map(normalizePhrase));
@@ -149,11 +149,11 @@ function shift(r: Recognition, offset: number): Recognition {
   return offset === 0 ? r : { ...r, start: r.start + offset, end: r.end + offset };
 }
 
-function shiftSuggestion(s: ChemlySuggestion, offset: number): ChemlySuggestion {
+function shiftSuggestion(s: AmperSuggestion, offset: number): AmperSuggestion {
   return offset === 0 ? s : { ...s, start: s.start + offset, end: s.end + offset };
 }
 
-export function recognitionToSuggestion(r: Recognition): ChemlySuggestion {
+export function recognitionToSuggestion(r: Recognition): AmperSuggestion {
   return {
     ruleId: r.ruleId,
     category: r.category,
@@ -167,7 +167,7 @@ export function recognitionToSuggestion(r: Recognition): ChemlySuggestion {
   };
 }
 
-function dedupe(suggestions: ChemlySuggestion[]): ChemlySuggestion[] {
+function dedupe(suggestions: AmperSuggestion[]): AmperSuggestion[] {
   const seen = new Set<string>();
   return suggestions.filter((s) => {
     const key = `${s.start}:${s.end}:${s.replacement}`;

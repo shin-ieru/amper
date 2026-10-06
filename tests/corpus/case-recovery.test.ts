@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEngine, productSettings, resolveSettings } from "@chemly/core";
+import { createEngine, productSettings, resolveSettings } from "@amper/core";
 import { setup } from "../integration/virtual-editor";
 import { CASE_RECOVERY_AMBIGUOUS, CASE_RECOVERY_AUTO, CASE_RECOVERY_NEGATIVE, CASE_RECOVERY_SUGGEST_ONLY } from "./case-recovery";
 

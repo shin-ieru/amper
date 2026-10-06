@@ -1,21 +1,21 @@
-import { ChemlyController, ChemlySession, createEngine, type ChemlySettings, type ControllerEvent, type Disposable } from "@chemly/core";
-import { SuggestionList } from "@chemly/shared-ui";
+import { AmperController, AmperSession, createEngine, type AmperSettings, type ControllerEvent, type Disposable } from "@amper/core";
+import { SuggestionList } from "@amper/shared-ui";
 import { loadState, onStateChange, type ExtensionOptions } from "../settings";
 import { bridgeRequest } from "./bridge-client";
 import { DocsAdapter } from "./docs-adapter";
 import { findTextEventFrame } from "./find-frame";
 
-let settings: ChemlySettings;
+let settings: AmperSettings;
 let options: ExtensionOptions;
 const engine = createEngine();
-const session = new ChemlySession(engine, () => settings);
+const session = new AmperSession(engine, () => settings);
 let overlay: SuggestionList | undefined;
 let attached: { frame: HTMLIFrameElement; adapter: DocsAdapter; controller: Disposable } | undefined;
 const counters = { conversions: 0, restores: 0, applyFailures: 0, suggestionsShown: 0 };
 
 function log(event: string, data?: Record<string, unknown>) {
   // Event names, rule ids, counts and lengths only: never document text (spec §45, §61).
-  if (options?.diagnostics) console.debug(`[Chemly] ${event}`, data ?? "");
+  if (options?.diagnostics) console.debug(`[Amper] ${event}`, data ?? "");
 }
 
 function onControllerEvent(event: ControllerEvent) {
@@ -52,12 +52,12 @@ function attachTo(frame: HTMLIFrameElement) {
     log,
   });
   adapter.attach();
-  const controller = new ChemlyController(adapter, session, { onEvent: onControllerEvent });
+  const controller = new AmperController(adapter, session, { onEvent: onControllerEvent });
   controllerRef = controller;
   attached = { frame, adapter, controller: controller.start() };
   log("attached");
 }
-let controllerRef: ChemlyController | undefined;
+let controllerRef: AmperController | undefined;
 
 function detach() {
   if (!attached) return;
@@ -99,7 +99,7 @@ async function main() {
 }
 
 chrome.runtime.onMessage.addListener((message: { type?: string }, _sender, reply) => {
-  if (message.type !== "chemly:probe") return false;
+  if (message.type !== "amper:probe") return false;
   const bridge = bridgeRequest({ op: "probe" });
   reply({
     attached: !!attached,

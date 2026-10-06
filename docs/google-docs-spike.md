@@ -55,8 +55,8 @@ Docs top document                                hidden text-event iframe (about
 │  ├ capture listeners ───────────────────────────▶ trusted keydown / composition / paste
 │  ├ TypingBuffer  (text typed since last  │     └───────────────▲───────────────────┘
 │  │   caret discontinuity)                │                     │ synthetic keydown/keypress/copy
-│  ├ ChemlyController + ChemlySession      │                     │ with legacy keyCode (F5, F6)
-│  │   (shared @chemly/core, no DOM)       │                     │
+│  ├ AmperController + AmperSession      │                     │ with legacy keyCode (F5, F6)
+│  │   (shared @amper/core, no DOM)       │                     │
 │  ├ SuggestionList overlay (shadow DOM)   │     ┌───────────────┴───────────────────┐
 │  └ bridgeRequest() ── CustomEvent ─────────────▶ bridge.js (MAIN world, ~2 KB)     │
 └──────────────────────────────────────────┘     │ only dispatches events, reads copy│
@@ -84,7 +84,7 @@ Status key: **✅ verified live** · **🟡 implemented, verified off-Docs only*
 | 8 | Paged documents? | ✅ | The probe document is paged (`kix-page-paginated` present). |
 | 9 | Pageless documents? | ⬜ | The mechanisms are layout-independent, but this is untested. |
 | 10 | Lists? | ⬜ | By design the typed Enter is never re-sent (`planRewrite` keeps the boundary), so list items are not recreated. Untested. |
-| 11 | Tables? | ⬜ | Tab moves between cells. Chemly consumes Tab **only** while a suggestion is visible. Untested. |
+| 11 | Tables? | ⬜ | Tab moves between cells. Amper consumes Tab **only** while a suggestion is visible. Untested. |
 | 12 | Avoid comments and unrelated UI? | 🟡 | Only the document text-event iframe is observed; comment boxes, menus and dialogs are separate DOM inputs. Whether comment typing ever routes through the same iframe is untested. |
 | 13 | Suggesting mode? | ⬜ | Expected to behave like user typing (edits become suggestions). Untested. |
 | 14 | Collaborative edits? | 🟡 | Remote edits elsewhere don't affect the text immediately before the local caret. Verify-before-replace catches a collaborator editing the same span (abort). Never rewrites remote text. Untested live. |
@@ -97,10 +97,10 @@ Status key: **✅ verified live** · **🟡 implemented, verified off-Docs only*
 
 ## Genuine limitations discovered
 
-1. **Canvas rendering hides document text** (F1). Chemly converts only what it watched being typed. That is safe, but it means no "fix the token I clicked back into" behaviour without the read-back trick.
+1. **Canvas rendering hides document text** (F1). Amper converts only what it watched being typed. That is safe, but it means no "fix the token I clicked back into" behaviour without the read-back trick.
 2. **Synthetic events need the MAIN world** (F6 + isolated-world semantics). This adds a second script and a tiny cross-world protocol. A page script could, in principle, spoof bridge responses. That is acceptable on `docs.google.com`, and it is why verification failures abort rather than proceed.
 3. **Trusted Types are enforced** (F11). There must be no `innerHTML`/script sinks anywhere in code that runs on Docs.
-4. **The allowlisted annotated canvas is not available to Chemly** (F12). Injecting another extension's allowlisted ID would be impersonation, so it is rejected outright.
+4. **The allowlisted annotated canvas is not available to Amper** (F12). Injecting another extension's allowlisted ID would be impersonation, so it is rejected outright.
 5. **Docs' own Substitutions and auto-capitalisation** can change characters the buffer believes it knows. Verify-before-replace handles this. A *case-only* difference (Docs turning `capital` into `Capital`) proceeds, and the adapter reports the document's real text, so Backspace restores what was actually there. Any other difference aborts with no edit. Found in manual testing; covered by `docs-regressions.test.ts`.
 6. **Undo granularity is not controllable** by an extension and is still unknown (Q6).
 7. **Automated Docs E2E needs a dedicated test Google account** plus Chrome for Testing or Chromium. Branded Chrome 137+ ignores `--load-extension` ([PSA][loadext]).
@@ -111,7 +111,7 @@ Status key: **✅ verified live** · **🟡 implemented, verified off-Docs only*
 The tester needs a Google account, about 15 minutes, and Chrome 111 or later.
 
 1. `npm run build:extension`, then open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and choose `apps/google-docs-extension/dist`.
-2. Open `https://docs.new`. Chemly is chemistry-aware whenever it is enabled; there is no mode to choose. In the popup, open **Developer / testing**, turn on **Console diagnostics**, and reload the doc. Open DevTools → Console and filter for `[Chemly]`.
+2. Open `https://docs.new`. Amper is chemistry-aware whenever it is enabled; there is no mode to choose. In the popup, open **Developer / testing**, turn on **Console diagnostics**, and reload the doc. Open DevTools → Console and filter for `[Amper]`.
 3. Run each row with **Insertion: Synthetic keypress** (Developer / testing), then repeat the failing rows with **Synthetic paste**.
 
 | ID | Do | Expect | Answers |
@@ -162,7 +162,7 @@ _Pending: fill in after running the manual protocol above. Then update the concl
 | T13 | | |
 | T14 | | |
 | T15 (Phase 2) type `SO4^2- ` and `2H2 + O2 -> 2H2O ` in Chemistry Mode | | |
-| T16 (Phase 2) Cmd/Ctrl+Z after a reaction conversion, then keep typing the reaction | | Docs resets Chemly's buffer on Undo, so the reverted text is never revisited |
+| T16 (Phase 2) Cmd/Ctrl+Z after a reaction conversion, then keep typing the reaction | | Docs resets Amper's buffer on Undo, so the reverted text is never revisited |
 | T17 (product) At the start of a paragraph type `capital sigma ` (Docs capitalises it) | | Expect exactly `Σ `; Backspace → `Capital sigma` |
 | T18 (product) type `h2so4 `, `nacl `, `fecl3 ` | | Expect `H₂SO₄ `, `NaCl `, `FeCl₃ ` with no Tab; Backspace restores the lowercase |
 | T19 (product) type `H2O, ` | | Converts at the comma |

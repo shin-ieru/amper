@@ -1,5 +1,5 @@
 {
-  "name": "@chemly/google-docs-extension",
+  "name": "@amper/google-docs-extension",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "watch": "node build.mjs --watch"
   },
   "dependencies": {
-    "@chemly/core": "*",
-    "@chemly/shared-ui": "*"
+    "@amper/core": "*",
+    "@amper/shared-ui": "*"
   }
 }

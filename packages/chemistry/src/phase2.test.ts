@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { formulaToAscii, formulaToUnicode } from "@chemly/renderer";
+import { formulaToAscii, formulaToUnicode } from "@amper/renderer";
 import { cloneFormula, type FormulaNode } from "./formulas/ast";
 import { interpretCharge } from "./formulas/charges";
 import { parseFormula } from "./formulas/parser";

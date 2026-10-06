@@ -1,10 +1,10 @@
-import type { CustomRule } from "@chemly/rules";
+import type { CustomRule } from "@amper/rules";
 
 export type { CustomRule };
 
-export type ChemlyMode = "standard" | "chemistry";
+export type AmperMode = "standard" | "chemistry";
 
-export type ChemlyCategory =
+export type AmperCategory =
   | "greek"
   | "symbol"
   | "formula"
@@ -16,7 +16,7 @@ export type ChemlyCategory =
   | "custom"
   | "other";
 
-export type ChemlyTrigger = "space" | "enter" | "tab" | "punctuation" | "shortcut" | "manual";
+export type AmperTrigger = "space" | "enter" | "tab" | "punctuation" | "shortcut" | "manual";
 
 /** Categories that can be switched off in settings (spec §49). */
 export type ToggleableCategory =
@@ -40,20 +40,20 @@ export const TOGGLEABLE_CATEGORIES: readonly ToggleableCategory[] = [
   "custom",
 ];
 
-export interface ChemlySettings {
+export interface AmperSettings {
   enabled: boolean;
-  mode: ChemlyMode;
+  mode: AmperMode;
   /** When false, anything that would autocorrect is offered as a suggestion instead. */
   autoConvert: boolean;
   autocomplete: boolean;
   backspaceRestore: boolean;
   categories: Record<ToggleableCategory, boolean>;
-  /** Exact inputs (case-insensitive) that Chemly must never touch. */
+  /** Exact inputs (case-insensitive) that Amper must never touch. */
   neverConvert: string[];
   customRules: CustomRule[];
 }
 
-export const DEFAULT_SETTINGS: ChemlySettings = Object.freeze({
+export const DEFAULT_SETTINGS: AmperSettings = Object.freeze({
   enabled: true,
   mode: "standard",
   autoConvert: true,
@@ -62,14 +62,14 @@ export const DEFAULT_SETTINGS: ChemlySettings = Object.freeze({
   categories: Object.freeze(Object.fromEntries(TOGGLEABLE_CATEGORIES.map((c) => [c, true])) as Record<ToggleableCategory, boolean>),
   neverConvert: [],
   customRules: [],
-}) as ChemlySettings;
+}) as AmperSettings;
 
 /** Settings as callers and storage provide them: any subset, including a subset of categories. */
-export type ChemlySettingsInput = Partial<Omit<ChemlySettings, "categories">> & {
+export type AmperSettingsInput = Partial<Omit<AmperSettings, "categories">> & {
   categories?: Partial<Record<ToggleableCategory, boolean>>;
 };
 
-export function resolveSettings(partial: ChemlySettingsInput = {}): ChemlySettings {
+export function resolveSettings(partial: AmperSettingsInput = {}): AmperSettings {
   return {
     ...DEFAULT_SETTINGS,
     ...partial,
@@ -81,10 +81,10 @@ export function resolveSettings(partial: ChemlySettingsInput = {}): ChemlySettin
 
 /**
  * The product profile (Google Docs extension, playground default): chemistry-aware
- * autocorrect is simply what an enabled Chemly does. "standard" remains an
+ * autocorrect is simply what an enabled Amper does. "standard" remains an
  * engine-level conservative profile for tests and diagnostics, not a user setting.
  */
-export function productSettings(input: ChemlySettingsInput = {}): ChemlySettings {
+export function productSettings(input: AmperSettingsInput = {}): AmperSettings {
   return resolveSettings({ ...input, mode: "chemistry" });
 }
 
@@ -92,7 +92,7 @@ export function productSettings(input: ChemlySettingsInput = {}): ChemlySettings
 export interface Recognition {
   recognizer: "named" | "formula" | "electron" | "reaction";
   ruleId: string;
-  category: ChemlyCategory;
+  category: AmperCategory;
   /** Offsets into the evaluated text (the text before the boundary). */
   start: number;
   end: number;
@@ -104,9 +104,9 @@ export interface Recognition {
   reasons: string[];
 }
 
-export interface ChemlySuggestion {
+export interface AmperSuggestion {
   ruleId: string;
-  category: ChemlyCategory;
+  category: AmperCategory;
   label: string;
   original: string;
   replacement: string;
@@ -131,11 +131,11 @@ export interface DebugInfo {
 
 export type EngineDecision =
   | { action: "autocorrect"; recognition: Recognition; debug: DebugInfo }
-  | { action: "suggest"; suggestions: ChemlySuggestion[]; debug: DebugInfo }
+  | { action: "suggest"; suggestions: AmperSuggestion[]; debug: DebugInfo }
   | { action: "none"; debug: DebugInfo };
 
 /**
- * The single editing primitive Chemly needs: delete N characters immediately
+ * The single editing primitive Amper needs: delete N characters immediately
  * before the caret and insert text in their place, leaving the caret after it.
  * Caret-relative (rather than absolute offsets) because Google Docs exposes no
  * document offsets to an extension; see ADR-003.
@@ -146,18 +146,18 @@ export interface TailRewrite {
 }
 
 /** Spec §7 transaction, plus the caret-relative data reversal needs. */
-export interface ChemlyTransaction {
+export interface AmperTransaction {
   id: string;
   kind: "convert" | "restore";
   ruleId: string;
-  category: ChemlyCategory;
+  category: AmperCategory;
   originalText: string;
   replacementText: string;
   /** Offsets within the bounded context window the decision was made on. */
   startOffset: number;
   endOffsetBefore: number;
   endOffsetAfter: number;
-  trigger: ChemlyTrigger;
+  trigger: AmperTrigger;
   confidence: number;
   timestamp: number;
   reversible: boolean;

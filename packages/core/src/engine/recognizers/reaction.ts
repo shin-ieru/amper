@@ -1,7 +1,7 @@
-import { parseArrowToken, parseReactionSuffix, type TextToken } from "@chemly/chemistry";
-import { reactionItemToUnicode } from "@chemly/renderer";
-import { PRIORITY } from "@chemly/rules";
-import type { ChemlyMode, Recognition, Rejection } from "../../types";
+import { parseArrowToken, parseReactionSuffix, type TextToken } from "@amper/chemistry";
+import { reactionItemToUnicode } from "@amper/renderer";
+import { PRIORITY } from "@amper/rules";
+import type { AmperMode, Recognition, Rejection } from "../../types";
 import { previousWord, trimFormulaToken, wordTokens } from "../text";
 import { evaluateSpecies, speciesNode } from "./species";
 import { spliceTokens } from "./splice";
@@ -20,7 +20,7 @@ const ASCII_ARROWS = new Set(["->", "<-", "<->", "<=>"]);
 export function recognizeReaction(
   text: string,
   from: number,
-  mode: ChemlyMode,
+  mode: AmperMode,
   rejections: Rejection[],
   frozen?: ReadonlySet<string>,
 ): Recognition[] {

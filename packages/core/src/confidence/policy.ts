@@ -1,5 +1,5 @@
-import type { FormulaFeatures } from "@chemly/chemistry";
-import type { ChemlyMode } from "../types";
+import type { FormulaFeatures } from "@amper/chemistry";
+import type { AmperMode } from "../types";
 import { ACRONYM_STEMS, acronymStem, LABEL_WORDS, NEGATIVE_LEXICON } from "./context";
 
 /** Spec §55: ≥ 0.95 autocorrect, 0.70–0.94 suggest, < 0.70 do nothing. */
@@ -22,7 +22,7 @@ export interface Scored {
 }
 
 export interface SpeciesContext {
-  mode: ChemlyMode;
+  mode: AmperMode;
   previousWord: string | undefined;
   /** The token follows "+" or a reaction arrow after another species. */
   inReaction: boolean;

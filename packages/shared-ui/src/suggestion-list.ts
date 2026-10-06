@@ -1,4 +1,4 @@
-import type { ChemlySuggestion } from "@chemly/core";
+import type { AmperSuggestion } from "@amper/core";
 
 const STYLES = `
 :host { all: initial; }
@@ -43,15 +43,15 @@ export class SuggestionList {
   constructor(parent: Node, options: SuggestionListOptions = {}) {
     this.options = options;
     const doc = parent.ownerDocument ?? (parent as Document);
-    this.host = doc.createElement("chemly-suggestions");
+    this.host = doc.createElement("amper-suggestions");
     const root = this.host.attachShadow({ mode: "open" });
     const style = doc.createElement("style");
     style.textContent = STYLES;
     this.list = doc.createElement("ul");
     this.list.className = "list";
-    this.list.id = "chemly-suggestion-list";
+    this.list.id = "amper-suggestion-list";
     this.list.setAttribute("role", "listbox");
-    this.list.setAttribute("aria-label", "Chemly suggestions");
+    this.list.setAttribute("aria-label", "Amper suggestions");
     this.list.hidden = true;
     // Keep focus in the editor when the user clicks a suggestion.
     this.list.addEventListener("mousedown", (event) => {
@@ -67,13 +67,13 @@ export class SuggestionList {
     return !this.list.hidden;
   }
 
-  show(items: readonly ChemlySuggestion[], selected: number, anchor: { x: number; y: number }): void {
+  show(items: readonly AmperSuggestion[], selected: number, anchor: { x: number; y: number }): void {
     const doc = this.list.ownerDocument;
     this.list.replaceChildren(
       ...items.map((item, index) => {
         const li = doc.createElement("li");
         li.className = "item";
-        li.id = `chemly-suggestion-${index}`;
+        li.id = `amper-suggestion-${index}`;
         li.dataset.index = String(index);
         li.setAttribute("role", "option");
         li.setAttribute("aria-selected", String(index === selected));
@@ -98,7 +98,7 @@ export class SuggestionList {
       hint.append(kbd("Tab"), " accept · ", kbd("Esc"), " dismiss");
     }
     this.list.append(hint);
-    this.list.setAttribute("aria-activedescendant", `chemly-suggestion-${selected}`);
+    this.list.setAttribute("aria-activedescendant", `amper-suggestion-${selected}`);
     this.list.hidden = false;
 
     const view = doc.defaultView;

@@ -1,4 +1,4 @@
-import type { TailRewrite } from "@chemly/core";
+import type { TailRewrite } from "@amper/core";
 
 export interface KeyInfo {
   key: string;
@@ -29,7 +29,7 @@ const UNKNOWN_INPUT = new Set(["Dead", "Process", "Unidentified", "Compose", "Ta
  *
  * It records committed characters typed since the last discontinuity. Any key
  * whose text effect it cannot be sure of (shortcuts, navigation, dead keys,
- * paste, clicks) resets it to empty. Empty context means Chemly sees nothing
+ * paste, clicks) resets it to empty. Empty context means Amper sees nothing
  * to convert, so uncertainty degrades to "do nothing", never to a wrong edit.
  * Text typed by collaborators elsewhere does not change what is immediately
  * before this user's caret, so it does not invalidate the buffer.
@@ -61,7 +61,7 @@ export class TypingBuffer {
     return { kind: "none" };
   }
 
-  /** Mirror a rewrite Chemly applied. Returns false if the model cannot have produced it. */
+  /** Mirror a rewrite Amper applied. Returns false if the model cannot have produced it. */
   applyRewrite({ deleteCount, insertText }: TailRewrite): boolean {
     if (deleteCount > this.value.length) {
       this.value = "";

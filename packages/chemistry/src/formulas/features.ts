@@ -2,7 +2,7 @@ import type { ChargeNotation, FormulaComponent, FormulaNode } from "./ast";
 
 /**
  * Structural facts about a parsed species. The confidence policy in
- * @chemly/core turns these into a score; this module only describes.
+ * @amper/core turns these into a score; this module only describes.
  */
 export interface FormulaFeatures {
   /** Every element occurrence across body and adducts, in order (with repeats). */

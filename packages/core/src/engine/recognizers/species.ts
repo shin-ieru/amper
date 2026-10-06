@@ -10,12 +10,12 @@ import {
   parseElectronToken,
   parseFormula,
   type FormulaNode,
-} from "@chemly/chemistry";
-import { formulaToAscii, formulaToUnicode } from "@chemly/renderer";
-import { PRIORITY } from "@chemly/rules";
+} from "@amper/chemistry";
+import { formulaToAscii, formulaToUnicode } from "@amper/renderer";
+import { PRIORITY } from "@amper/rules";
 import { ACRONYM_STEMS, acronymStem, NEGATIVE_LEXICON, nonProseReason } from "../../confidence/context";
 import { scoreSpecies } from "../../confidence/policy";
-import type { ChemlyCategory, ChemlyMode, Recognition, Rejection } from "../../types";
+import type { AmperCategory, AmperMode, Recognition, Rejection } from "../../types";
 import { previousWord, trimFormulaToken, wordTokens, type WordToken } from "../text";
 
 /** Characters that mean a token may render differently: digits, caret, signs, non-canonical dots. */
@@ -29,7 +29,7 @@ export interface SpeciesReading {
   reasons: string[];
   label: string;
   ruleId: string;
-  category: ChemlyCategory;
+  category: AmperCategory;
   priority: number;
 }
 
@@ -50,7 +50,7 @@ function classify(node: FormulaNode, typedCaret: boolean): Pick<SpeciesReading, 
  * Parses one candidate as a chemical species and scores every reading.
  * Readings that render identically to the input are dropped (nothing to do).
  */
-type SpeciesContextInput = { mode: ChemlyMode; previousWord: string | undefined; inReaction: boolean };
+type SpeciesContextInput = { mode: AmperMode; previousWord: string | undefined; inReaction: boolean };
 
 export function evaluateSpecies(candidate: string, context: SpeciesContextInput): SpeciesEvaluation {
   const strict = evaluateStrict(candidate, context);
@@ -209,7 +209,7 @@ export function inReactionContext(tokens: readonly WordToken[], index: number): 
 }
 
 /** The last token as a species: neutral formulas, ions, states, hydrates, isotopes (spec §12–17). */
-export function recognizeSpecies(text: string, from: number, mode: ChemlyMode, rejections: Rejection[]): Recognition[] {
+export function recognizeSpecies(text: string, from: number, mode: AmperMode, rejections: Rejection[]): Recognition[] {
   const tokens = wordTokens(text, from);
   const token = tokens[tokens.length - 1];
   if (!token || token.end !== text.length) return [];
@@ -275,7 +275,7 @@ export function recognizeSpecies(text: string, from: number, mode: ChemlyMode, r
  */
 function periodHydrate(
   candidate: string,
-  context: { mode: ChemlyMode; previousWord: string | undefined; inReaction: boolean },
+  context: { mode: AmperMode; previousWord: string | undefined; inReaction: boolean },
 ): Omit<Recognition, "start" | "end" | "original"> | undefined {
   const match = /^([^.]+)\.(\d[^.]*)$/.exec(candidate);
   if (!match) return undefined;

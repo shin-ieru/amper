@@ -2,14 +2,14 @@ import {
   planRewrite,
   type ApplyResult,
   type CaretAnchor,
-  type ChemlySuggestion,
+  type AmperSuggestion,
   type Disposable,
   type EditorAdapter,
   type EditorInputEvent,
   type EditorKeyEvent,
   type TailRewrite,
-} from "@chemly/core";
-import type { SuggestionList } from "@chemly/shared-ui";
+} from "@amper/core";
+import type { SuggestionList } from "@amper/shared-ui";
 import { bridgeRequest } from "./bridge-client";
 import type { BridgeRequest, BridgeResponse, InsertStrategy } from "./bridge-protocol";
 import { TypingBuffer, type BufferEffect } from "./typing-buffer";
@@ -104,7 +104,7 @@ export class DocsAdapter implements EditorAdapter {
     });
     for (const type of ["paste", "cut", "drop"] as const) on(win, type, (e) => e.isTrusted && this.discontinuity(type));
     on(win, "blur", () => this.discontinuity("focus left"));
-    // Clicks land on the canvas in the top document; ignore clicks on Chemly's own popup.
+    // Clicks land on the canvas in the top document; ignore clicks on Amper's own popup.
     on(document, "mousedown", (e) => {
       if (!e.composedPath().includes(this.overlay.host)) this.discontinuity("pointer");
     });
@@ -186,7 +186,7 @@ export class DocsAdapter implements EditorAdapter {
     return this.subscribe("composition", handler);
   }
 
-  showSuggestions(items: ChemlySuggestion[], selected: number, anchor?: CaretAnchor): void {
+  showSuggestions(items: AmperSuggestion[], selected: number, anchor?: CaretAnchor): void {
     this.overlay.show(items, selected, anchor ?? caretAnchor());
   }
   hideSuggestions(): void {

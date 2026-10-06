@@ -10,7 +10,7 @@ Google Docs is the product (spec §4.1), but its DOM is internal, undocumented a
 2. Engine as pure TypeScript packages; hosts implement an adapter contract.
 
 ## Decision
-Option 2. `@chemly/chemistry`, `@chemly/renderer`, `@chemly/rules` and `@chemly/core` have no DOM, network or host dependencies. Hosts implement `EditorAdapter`. A shared `ChemlyController` and `ChemlySession` hold all conversion and reversal behaviour.
+Option 2. `@amper/chemistry`, `@amper/renderer`, `@amper/rules` and `@amper/core` have no DOM, network or host dependencies. Hosts implement `EditorAdapter`. A shared `AmperController` and `AmperSession` hold all conversion and reversal behaviour.
 
 ## Rationale
 - The same session code runs in the in-memory test editor, the playground and Docs, so reversal semantics are tested once and reused everywhere.

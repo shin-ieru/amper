@@ -5,8 +5,8 @@
  * object wrappers do not). dispatchEvent is synchronous, so a request
  * returns its response before `request()` returns.
  */
-export const REQUEST_EVENT = "chemly:bridge-request";
-export const RESPONSE_EVENT = "chemly:bridge-response";
+export const REQUEST_EVENT = "amper:bridge-request";
+export const RESPONSE_EVENT = "amper:bridge-response";
 
 export type InsertStrategy = "keypress" | "paste";
 

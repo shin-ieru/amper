@@ -1,6 +1,6 @@
-# Chemly
+# Amper
 
-Chemistry autocorrect and autocomplete for Google Docs. Type `H2SO4`, `SO4^2-`, `capital sigma` or `2H2 + O2 -> 2H2O` and Chemly writes `H₂SO₄`, `SO₄²⁻`, `Σ`, `2H₂ + O₂ → 2H₂O` as ordinary editable text. Press Backspace straight after a conversion to get back exactly what you typed.
+Chemistry autocorrect and autocomplete for Google Docs. Type `H2SO4`, `SO4^2-`, `capital sigma` or `2H2 + O2 -> 2H2O` and Amper writes `H₂SO₄`, `SO₄²⁻`, `Σ`, `2H₂ + O₂ → 2H₂O` as ordinary editable text. Press Backspace straight after a conversion to get back exactly what you typed.
 
 Everything runs locally and deterministically. No document text leaves the device.
 
@@ -38,7 +38,7 @@ npm run build:extension
 
 1. `npm run build:extension`
 2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and choose `apps/google-docs-extension/dist`.
-3. Open a Google Doc and reload it. Chemly is chemistry-aware whenever it is enabled; the popup only has on/off switches.
+3. Open a Google Doc and reload it. Amper is chemistry-aware whenever it is enabled; the popup only has on/off switches.
 
 The extension is a **spike prototype**. Before relying on it, run the manual protocol in [docs/google-docs-spike.md](docs/google-docs-spike.md#manual-validation-protocol-editable-document).
 

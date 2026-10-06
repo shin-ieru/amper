@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEngine, resolveSettings, type ChemlyMode } from "@chemly/core";
+import { createEngine, resolveSettings, type AmperMode } from "@amper/core";
 import { setup } from "../integration/virtual-editor";
 import {
   ARROW_PROSE,
@@ -46,14 +46,14 @@ const configOracle = (config: string) => config.replace(/(?<=[spdf])\d+/g, sup);
 
 // ---- Engine helpers ----
 const engine = createEngine();
-const decide = (text: string, mode: ChemlyMode = "chemistry") =>
+const decide = (text: string, mode: AmperMode = "chemistry") =>
   engine.evaluate({ textBefore: text, trigger: "space" }, resolveSettings({ mode }));
-const converted = (text: string, mode: ChemlyMode = "chemistry") => {
+const converted = (text: string, mode: AmperMode = "chemistry") => {
   const d = decide(text, mode);
   return d.action === "autocorrect" ? d.recognition.replacement : `(${d.action})`;
 };
 
-function expectAll(inputs: readonly string[], oracle: (s: string) => string, mode: ChemlyMode = "chemistry") {
+function expectAll(inputs: readonly string[], oracle: (s: string) => string, mode: AmperMode = "chemistry") {
   const failures = inputs.filter((i) => converted(i, mode) !== oracle(i)).map((i) => `${i} → ${converted(i, mode)} (want ${oracle(i)})`);
   expect(failures).toEqual([]);
 }
