@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
@@ -8,10 +8,8 @@ const iconSvg = readFileSync(resolve(root, "assets/brand/amper-icon.svg"), "utf8
 const promoSvg = readFileSync(resolve(root, "assets/store/amper-small-promo-440x280.svg"), "utf8");
 const iconDir = resolve(root, "apps/google-docs-extension/static/icons");
 const storeDir = resolve(root, "assets/store");
-const siteAssetDir = resolve(root, "site/assets");
 mkdirSync(iconDir, { recursive: true });
 mkdirSync(storeDir, { recursive: true });
-mkdirSync(siteAssetDir, { recursive: true });
 
 const browser = await chromium.launch({ headless: true });
 try {
@@ -29,6 +27,4 @@ try {
   await browser.close();
 }
 
-copyFileSync(resolve(iconDir, "icon128.png"), resolve(siteAssetDir, "amper-icon-128.png"));
-copyFileSync(resolve(iconDir, "icon32.png"), resolve(siteAssetDir, "amper-icon-32.png"));
 console.log("Rendered 16, 32, 48, and 128 px extension icons and the 440×280 store promo image.");

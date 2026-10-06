@@ -3,52 +3,58 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Amper formats chemistry notation while you type in Google Docs, after you choose to enable it." />
-    <meta name="theme-color" content="#f8fafd" />
+    <meta name="description" content="Amper is chemistry-aware autocorrect for Google Docs." />
+    <meta name="theme-color" content="#ffffff" />
     <title>Amper — Chemistry-aware autocorrect for Google Docs</title>
-    <link rel="icon" href="/amper/assets/amper-icon-32.png" type="image/png" />
+    <link rel="icon" href="/amper/assets/amper-mark.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/amper/assets/site.css" />
   </head>
   <body>
     <header class="site-header shell">
-      <a class="brand" href="/amper/" aria-label="Amper home"><img src="/amper/assets/amper-icon-128.png" alt="" />Amper</a>
+      <a class="brand" href="/amper/" aria-label="Amper home">
+        <span class="brand-mark" aria-hidden="true">⇌</span>
+        <span>Amper</span>
+      </a>
       <nav class="nav" aria-label="Main navigation">
+        <a href="https://github.com/shin-ieru/amper">GitHub</a>
         <a href="/amper/privacy/">Privacy</a>
         <a href="https://github.com/shin-ieru/amper/issues">Support</a>
       </nav>
     </header>
     <main class="shell">
-      <section class="hero">
-        <p class="eyebrow">For chemistry writing</p>
-        <h1>Chemistry-aware autocorrect for Google Docs.</h1>
-        <p class="lead">Type familiar notation. Amper formats chemistry symbols in your document after you choose to enable it.</p>
-        <div class="demo" aria-label="Example chemistry formatting">
-          <div class="demo-part">
-            <p class="demo-label">TYPE</p>
-            <p class="formula">N2 + 3H2 equi 2NH3</p>
-          </div>
-          <span class="demo-arrow" aria-hidden="true">→</span>
-          <div class="demo-part">
-            <p class="demo-label">FORMATTED</p>
-            <p class="formula after">N₂ + 3H₂ ⇌ 2NH₃</p>
-          </div>
+      <section class="hero" aria-labelledby="page-title">
+        <h1 id="page-title">Amper</h1>
+        <p class="tagline">Chemistry-aware autocorrect for Google Docs.</p>
+        <p class="lead">Write formulas, Greek letters, reactions, and scientific notation naturally as you type.</p>
+
+        <div class="examples" aria-label="Examples of chemistry formatting">
+          <p class="example">
+            <span class="example-input">h2so4</span>
+            <span class="example-arrow"><span aria-hidden="true">→</span><span class="sr-only">becomes</span></span>
+            <span class="example-output">H₂SO₄</span>
+          </p>
+          <p class="example">
+            <span class="example-input">sigma</span>
+            <span class="example-arrow"><span aria-hidden="true">→</span><span class="sr-only">becomes</span></span>
+            <span class="example-output">σ</span>
+          </p>
+          <p class="example">
+            <span class="example-input">equi</span>
+            <span class="example-arrow"><span aria-hidden="true">→</span><span class="sr-only">becomes</span></span>
+            <span class="example-output">⇌</span>
+          </p>
+          <p class="example example-long">
+            <span class="example-input">N2 + 3H2 equi 2NH3</span>
+            <span class="example-arrow"><span aria-hidden="true">→</span><span class="sr-only">becomes</span></span>
+            <span class="example-output">N₂ + 3H₂ ⇌ 2NH₃</span>
+          </p>
         </div>
-        <aside class="privacy-note">
-          <span aria-hidden="true">◉</span>
-          <p><strong>Your choice comes first.</strong> Amper asks before processing Google Docs typing. Processing happens locally in your browser; document text is not sent to Amper servers or third parties.</p>
-        </aside>
-        <div class="actions">
-          <a class="button" href="https://github.com/shin-ieru/amper">View the project</a>
-          <a class="button secondary" href="https://github.com/shin-ieru/amper/issues">Get support</a>
-        </div>
+
+        <p class="privacy-note">Amper stays off until you enable it. Document text is processed locally in your browser.</p>
       </section>
     </main>
     <footer class="site-footer shell">
-      <p>Amper is an independent project and is not affiliated with or endorsed by Google.</p>
-      <nav aria-label="Footer navigation">
-        <a href="/amper/privacy/">Privacy policy</a>
-        <a href="https://github.com/shin-ieru/amper/issues">GitHub Issues</a>
-      </nav>
+      <p>Independent project; not affiliated with or endorsed by Google.</p>
     </footer>
   </body>
 </html>
