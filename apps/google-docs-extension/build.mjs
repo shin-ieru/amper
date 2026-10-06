@@ -17,6 +17,7 @@ const options = {
     content: join(here, "src/content/main.ts"),
     bridge: join(here, "src/content/bridge.ts"),
     popup: join(here, "src/popup/popup.ts"),
+    reference: join(here, "src/reference/reference.ts"),
   },
   outdir: out,
   bundle: true,

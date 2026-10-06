@@ -1,5 +1,42 @@
 import type { AmperSettings } from "@amper/core";
+import { ONBOARDING, TRY_TYPING, type ShortcutEntry } from "../reference/catalog";
 import { loadState, saveState, type ExtensionOptions, type StoredState } from "../settings";
+
+const ONBOARDED_KEY = "amper.onboarded";
+
+/** <li><kbd>equi</kbd> → ⇌</li>, built with DOM APIs (no markup strings). */
+function renderExamples(list: HTMLElement, entries: readonly ShortcutEntry[]) {
+  list.replaceChildren(
+    ...entries.map((entry) => {
+      const li = document.createElement("li");
+      const kbd = Object.assign(document.createElement("kbd"), { textContent: entry.input });
+      const to = Object.assign(document.createElement("span"), { className: "to", textContent: "→" });
+      to.setAttribute("aria-label", "becomes");
+      const out = Object.assign(document.createElement("span"), { className: "out", textContent: entry.output });
+      li.append(kbd, to, out);
+      return li;
+    }),
+  );
+}
+
+async function setupHelp() {
+  renderExamples(document.getElementById("onboardingList")!, ONBOARDING);
+  renderExamples(document.getElementById("tryList")!, TRY_TYPING);
+  const onboarded = (await chrome.storage.local.get(ONBOARDED_KEY))[ONBOARDED_KEY] === true;
+  document.getElementById("onboarding")!.hidden = onboarded;
+  document.getElementById("try")!.hidden = !onboarded;
+  document.getElementById("onboardingDone")!.addEventListener("click", async () => {
+    await chrome.storage.local.set({ [ONBOARDED_KEY]: true });
+    document.getElementById("onboarding")!.hidden = true;
+    document.getElementById("try")!.hidden = false;
+  });
+  for (const button of document.querySelectorAll<HTMLButtonElement>("[data-action=view-all]")) {
+    button.addEventListener("click", async () => {
+      await chrome.tabs.create({ url: chrome.runtime.getURL("reference.html") });
+      window.close();
+    });
+  }
+}
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -21,6 +58,7 @@ async function update(settings: Partial<AmperSettings>, options: Partial<Extensi
 }
 
 async function main() {
+  void setupHelp();
   state = await loadState();
   render();
   for (const id of SETTING_BOXES) $<HTMLInputElement>(id).addEventListener("change", (e) => update({ [id]: (e.target as HTMLInputElement).checked }));

@@ -16,7 +16,8 @@
     "build": "npm run build -w @amper/playground && npm run build -w @amper/google-docs-extension",
     "build:extension": "npm run build -w @amper/google-docs-extension",
     "e2e": "playwright test",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "e2e:extension": "npm run build:extension && playwright test -c playwright.extension.config.ts"
   },
   "engines": {
     "node": ">=20"

@@ -57,6 +57,7 @@ npm run check          # typecheck every package and app, then run unit, integra
 npm test               # tests only (Vitest)
 npm run dev            # playground at http://localhost:5199
 npm run e2e            # Playwright E2E against the playground (uses installed Chrome)
+npm run e2e:extension  # builds the extension, then tests its popup and shortcut reference in Chromium
 npm run build          # playground + extension builds
 npm run build:extension
 ```
@@ -65,7 +66,9 @@ npm run build:extension
 
 1. `npm run build:extension`
 2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and choose `apps/google-docs-extension/dist`.
-3. Open a Google Doc and reload it. Amper is chemistry-aware whenever it is enabled; the popup has only a few on/off switches.
+3. Open a Google Doc and reload it. Amper is chemistry-aware whenever it is enabled.
+
+The toolbar popup welcomes you on first use with a few shortcuts to try, then shows a compact **Try typing** list. **View all shortcuts** opens a searchable reference grouped by Greek, reaction arrows, formulas & charges, states and scientific symbols. Every entry in the popup and the reference is generated from, or checked against, the real engine by tests, so it always matches what Amper does.
 
 v0.1.0 is an early release, loaded unpacked. The Google Docs integration relies on Docs' undocumented internals (see [ADR-003](docs/adr/ADR-003-google-docs-integration.md)); the manual protocol in [docs/google-docs-spike.md](docs/google-docs-spike.md#manual-validation-protocol-editable-document) is the regression checklist.
 

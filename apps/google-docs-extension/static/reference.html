@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Amper Shortcuts</title>
+    <style>
+      :root { --text: #1f1f1f; --muted: #5f6368; --line: #e3e3e3; --soft: #f8f9fa; --accent: #1a73e8; --accent-soft: #e8f0fe; --ok: #188038; --ok-soft: #e6f4ea; --warn: #8a5300; --warn-soft: #fef7e0; }
+      * { box-sizing: border-box; }
+      /* Author display rules (section/li use grid) would otherwise override the hidden attribute. */
+      [hidden] { display: none !important; }
+      body { margin: 0; background: #fff; color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      header { position: sticky; top: 0; z-index: 1; background: #fff; border-bottom: 1px solid var(--line); }
+      .bar { max-width: 760px; margin: 0 auto; padding: 14px 16px 12px; display: grid; gap: 8px; }
+      h1 { margin: 0; font-size: 17px; letter-spacing: -0.01em; }
+      h1 span { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 6px; }
+      .search { display: flex; gap: 8px; align-items: center; }
+      input[type="search"] { flex: 1; font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; }
+      input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+      .count { color: var(--muted); font-size: 12px; white-space: nowrap; }
+      nav { display: flex; flex-wrap: wrap; gap: 6px; }
+      nav a { font-size: 12px; color: var(--accent); text-decoration: none; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; }
+      nav a:focus-visible, nav a:hover { background: var(--accent-soft); }
+      main { max-width: 760px; margin: 0 auto; padding: 4px 16px 40px; }
+      .tip { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+      section { margin-top: 18px; scroll-margin-top: 130px; }
+      h2 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+      /* Rows share the list's columns (subgrid), so inputs, arrows and outputs line up. */
+      ul { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+           display: grid; grid-template-columns: max-content 1.4em max-content minmax(0, 1fr); }
+      li { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: baseline; column-gap: 8px; padding: 5px 12px; border-top: 1px solid var(--line); }
+      li:first-child { border-top: 0; }
+      /* Long, uniform groups (Greek, symbols) use two columns to stay scannable. */
+      section.two-col ul { grid-template-columns: repeat(2, max-content 1.4em max-content minmax(0, 1fr)); }
+      section.two-col li { grid-column: span 4; border-top: 0; border-bottom: 1px solid var(--line); }
+      li.recommended { background: var(--ok-soft); }
+      kbd { font: 13px/1.4 ui-monospace, Menlo, monospace; background: var(--soft); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; justify-self: start; overflow-wrap: anywhere; }
+      .to { color: var(--muted); text-align: center; }
+      .out { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+      .meta { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+      .badge { font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 999px; white-space: nowrap; }
+      .badge.recommended { color: var(--ok); background: #fff; border: 1px solid #b7dfc2; }
+      .badge.alternative { color: var(--muted); background: var(--soft); border: 1px solid var(--line); }
+      .badge.suggestion { color: var(--warn); background: var(--warn-soft); border: 1px solid #f3dca4; }
+      .empty { color: var(--muted); margin-top: 24px; }
+      .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+      sub { font-size: 0.68em; }
+      @media (max-width: 640px) {
+        section.two-col ul, ul { grid-template-columns: minmax(0, 1fr) 1.4em minmax(0, 1fr); }
+        section.two-col li, li { grid-column: 1 / -1; }
+        .meta:not(:empty) { grid-column: 1 / -1; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="bar">
+        <h1>Amper shortcuts <span>Type a shortcut in a Google Doc, then press Space.</span></h1>
+        <div class="search">
+          <label for="q" class="visually-hidden">Search shortcuts</label>
+          <input id="q" type="search" placeholder="Search: sigma, equilibrium, charge, (aq)…  ( / )" autocomplete="off" spellcheck="false" />
+          <span class="count" id="count" aria-live="polite"></span>
+        </div>
+        <nav id="nav" aria-label="Groups"></nav>
+      </div>
+    </header>
+    <main>
+      <p class="tip">Press <kbd>Backspace</kbd> right after a conversion to get back exactly what you typed. Shortcuts marked <span class="badge suggestion">suggestion</span> are offered instead of applied: press <kbd>Tab</kbd> to accept.</p>
+      <div id="groups"></div>
+      <p class="empty" id="empty" hidden>No shortcuts match. Try a name (sigma), a symbol (⇌) or a group (states).</p>
+    </main>
+    <script src="reference.js"></script>
+  </body>
+</html>
