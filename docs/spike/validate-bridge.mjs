@@ -52,7 +52,21 @@ await placeCaretAtEnd();
 await call({ op: "selectBack", count: 4 });
 results.selectAcrossSpace = (await call({ op: "copySelection" })).text;
 
-const expected = { selectBack3: "doc", stepLeft4ThenSelect3: "ple", afterCollapseAndReturn: "doc", selectAcrossSpace: " doc" };
+// Formatting read-back used to verify subscript and detect leaks (view-only: baseline text only).
+await placeCaretAtEnd();
+await call({ op: "moveLeft", count: 4 });
+await call({ op: "selectForward", count: 2 });
+results.selectForward2 = (await call({ op: "copySelection" })).text;
+const html = (await call({ op: "copySelectionHtml" })).text ?? "";
+results.htmlVerticalAlign = [...new Set([...html.matchAll(/vertical-align:\s*([a-z-]+)/g)].map((m) => m[1]))].join(",");
+await call({ op: "moveLeft", count: 1 });
+await call({ op: "selectBack", count: 3 });
+results.collapseLeftThenSelect3 = (await call({ op: "copySelection" })).text;
+
+const expected = {
+  selectBack3: "doc", stepLeft4ThenSelect3: "ple", afterCollapseAndReturn: "doc", selectAcrossSpace: " doc",
+  selectForward2: " d", htmlVerticalAlign: "baseline", collapseLeftThenSelect3: "ple",
+};
 results.pass = Object.fromEntries(Object.entries(expected).map(([k, v]) => [k, results[k] === v]));
 console.log(JSON.stringify(results, null, 2));
 await browser.close();

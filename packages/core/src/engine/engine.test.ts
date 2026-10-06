@@ -36,12 +36,18 @@ describe("named symbols", () => {
     expect(evaluate("y proportional to").action).toBe("autocorrect");
   });
 
-  it("only matches whole words", () => {
-    expect(evaluate("xcapital sigma").action).not.toBe("autocorrect");
+  it("only matches whole words: 'xcapital sigma' is not the capital phrase, only bare sigma", () => {
+    const d = evaluate("xcapital sigma");
+    expect(d.action === "autocorrect" && [d.recognition.ruleId, d.recognition.original, d.recognition.replacement]).toEqual([
+      "greek.bare.sigma",
+      "sigma",
+      "σ",
+    ]);
   });
 
-  it("only looks at the current line", () => {
-    expect(evaluate("capital\nsigma").action).toBe("suggest");
+  it("only looks at the current line: 'capital' on the line above is not part of the phrase", () => {
+    const d = evaluate("capital\nsigma");
+    expect(d.action === "autocorrect" && [d.recognition.ruleId, d.recognition.replacement]).toEqual(["greek.bare.sigma", "σ"]);
   });
 });
 

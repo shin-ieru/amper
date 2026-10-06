@@ -59,8 +59,30 @@ export interface StoredState {
 }
 
 // chrome.storage.local, not sync: custom rules and never-convert lists stay on this device (spec §45).
+/**
+ * Stored-settings schema. Version 2 made subscript state labels the product
+ * default; earlier popups saved "stateLabels: baseline" whenever any switch was
+ * touched, which was the old default rather than a user choice.
+ */
+export const SETTINGS_SCHEMA_VERSION = 2;
+const SCHEMA_KEY = "amper.settingsVersion";
+
+export async function migrateSettingsSchema(area: StorageAreaLike): Promise<boolean> {
+  const stored = await area.get([SCHEMA_KEY, SETTINGS_KEY]);
+  if (typeof stored[SCHEMA_KEY] === "number" && stored[SCHEMA_KEY] >= SETTINGS_SCHEMA_VERSION) return false;
+  const settings = stored[SETTINGS_KEY] as Record<string, unknown> | undefined;
+  const patch: Record<string, unknown> = { [SCHEMA_KEY]: SETTINGS_SCHEMA_VERSION };
+  if (settings && "stateLabels" in settings) {
+    const { stateLabels: _old, ...rest } = settings;
+    patch[SETTINGS_KEY] = rest;
+  }
+  await area.set(patch);
+  return true;
+}
+
 export async function loadState(): Promise<StoredState> {
   await migrateLegacyStorage(chrome.storage.local as unknown as StorageAreaLike);
+  await migrateSettingsSchema(chrome.storage.local as unknown as StorageAreaLike);
   const stored = await chrome.storage.local.get([SETTINGS_KEY, OPTIONS_KEY]);
   return {
     // Product profile: an enabled Amper is chemistry-aware. Any "mode" stored by

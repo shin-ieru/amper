@@ -14,6 +14,7 @@ import { REQUEST_EVENT, RESPONSE_EVENT, type BridgeRequest, type BridgeResponse 
 import { FRAME_CLASS_SELECTOR, findTextEventFrame } from "./find-frame";
 
 const KEY = { Enter: 13, ArrowLeft: 37, ArrowRight: 39 } as const;
+const IS_MAC = /mac/i.test(navigator.platform);
 
 function target(): { doc: Document; win: Window & typeof globalThis; el: Element } | undefined {
   const doc = findTextEventFrame()?.contentDocument;
@@ -59,6 +60,14 @@ function handle(request: BridgeRequest): BridgeResponse {
     case "selectBack":
       for (let i = 0; i < request.count; i++) key(t, "ArrowLeft", true);
       return { ok: true };
+    case "selectForward":
+      for (let i = 0; i < request.count; i++) key(t, "ArrowRight", true);
+      return { ok: true };
+    case "copySelectionHtml": {
+      const data = new t.win.DataTransfer();
+      t.el.dispatchEvent(new t.win.ClipboardEvent("copy", { clipboardData: data, bubbles: true, cancelable: true }));
+      return { ok: true, text: data.types.includes("text/html") ? data.getData("text/html") : null };
+    }
     case "copySelection": {
       const data = new t.win.DataTransfer();
       t.el.dispatchEvent(new t.win.ClipboardEvent("copy", { clipboardData: data, bubbles: true, cancelable: true }));
@@ -73,6 +82,12 @@ function handle(request: BridgeRequest): BridgeResponse {
         for (const ch of request.text) typeChar(t, ch);
       }
       return { ok: true };
+    case "toggleSubscript": {
+      const init = { key: ",", code: "Comma", metaKey: IS_MAC, ctrlKey: !IS_MAC, bubbles: true, cancelable: true };
+      t.el.dispatchEvent(legacy(new t.win.KeyboardEvent("keydown", init), { keyCode: 188, which: 188 }));
+      t.el.dispatchEvent(legacy(new t.win.KeyboardEvent("keyup", init), { keyCode: 188, which: 188 }));
+      return { ok: true };
+    }
     case "probe":
       return { ok: true, report: probe() };
   }

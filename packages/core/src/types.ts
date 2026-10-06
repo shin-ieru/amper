@@ -51,6 +51,21 @@ export interface AmperSettings {
   /** Exact inputs (case-insensitive) that Amper must never touch. */
   neverConvert: string[];
   customRules: CustomRule[];
+  /**
+   * Presentation of (s), (l), (g), (aq). "baseline" (default) is standard scientific
+   * typesetting. "subscript" asks hosts that support native formatting to subscript
+   * the whole label; the text and AST are identical either way (spec V2 §15).
+   */
+  stateLabels: StateLabelStyle;
+}
+
+export type StateLabelStyle = "baseline" | "subscript";
+
+/** Native formatting for a range of an inserted/replacement string (UTF-16 offsets). */
+export interface FormatSpan {
+  start: number;
+  end: number;
+  style: "subscript";
 }
 
 export const DEFAULT_SETTINGS: AmperSettings = Object.freeze({
@@ -62,6 +77,7 @@ export const DEFAULT_SETTINGS: AmperSettings = Object.freeze({
   categories: Object.freeze(Object.fromEntries(TOGGLEABLE_CATEGORIES.map((c) => [c, true])) as Record<ToggleableCategory, boolean>),
   neverConvert: [],
   customRules: [],
+  stateLabels: "baseline",
 }) as AmperSettings;
 
 /** Settings as callers and storage provide them: any subset, including a subset of categories. */
@@ -81,11 +97,12 @@ export function resolveSettings(partial: AmperSettingsInput = {}): AmperSettings
 
 /**
  * The product profile (Google Docs extension, playground default): chemistry-aware
- * autocorrect is simply what an enabled Amper does. "standard" remains an
+ * autocorrect is simply what an enabled Amper does, and state labels are subscripted. "standard" remains an
  * engine-level conservative profile for tests and diagnostics, not a user setting.
  */
 export function productSettings(input: AmperSettingsInput = {}): AmperSettings {
-  return resolveSettings({ ...input, mode: "chemistry" });
+  // Product presentation: state labels are natively subscripted in hosts that can format.
+  return resolveSettings({ stateLabels: "subscript", ...input, mode: "chemistry" });
 }
 
 /** One recogniser's claim over a span of the text before the boundary. */
@@ -102,6 +119,8 @@ export interface Recognition {
   priority: number;
   label: string;
   reasons: string[];
+  /** Presentation-only formatting within `replacement`. */
+  formatting?: FormatSpan[];
 }
 
 export interface AmperSuggestion {
@@ -114,6 +133,7 @@ export interface AmperSuggestion {
   start: number;
   end: number;
   source: "ambiguous" | "completion" | "fuzzy";
+  formatting?: FormatSpan[];
 }
 
 export interface Rejection {
@@ -143,6 +163,8 @@ export type EngineDecision =
 export interface TailRewrite {
   deleteCount: number;
   insertText: string;
+  /** Optional native formatting within `insertText`; hosts without formatting ignore it. */
+  formatting?: FormatSpan[];
 }
 
 /** Spec §7 transaction, plus the caret-relative data reversal needs. */
@@ -167,6 +189,7 @@ export interface AmperTransaction {
   insertedTail: string;
   /** What immediate Backspace puts back. */
   restoreText: string;
+  formatting?: FormatSpan[];
 }
 
 export interface Disposable {

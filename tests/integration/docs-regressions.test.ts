@@ -23,7 +23,7 @@ const typed = (text: string) => setup(product).editor.type(text).text;
 
 describe("product profile (extension defaults)", () => {
   it("an enabled Amper is chemistry-aware with every assist on", () => {
-    expect(product).toMatchObject({ enabled: true, mode: "chemistry", autoConvert: true, autocomplete: true, backspaceRestore: true });
+    expect(product).toMatchObject({ enabled: true, mode: "chemistry", autoConvert: true, autocomplete: true, backspaceRestore: true, stateLabels: "subscript" });
   });
 
   it("ignores a stored conservative mode", () => {
@@ -75,7 +75,6 @@ describe("high-confidence input autocorrects without Tab", () => {
   it("ambiguous input stays conservative", () => {
     expect(typed("O2+ ")).toBe("O2+ ");
     expect(typed("SO42- ")).toBe("SO42- ");
-    expect(typed("sigma ")).toBe("sigma ");
   });
 });
 
@@ -116,11 +115,13 @@ describe("explicit Greek phrases are whole-phrase and case-insensitive", () => {
     expect(editor.visibleSuggestions).toBeUndefined();
   });
 
-  it("bare names in prose remain suggestions", () => {
-    const { editor } = setup(product);
-    editor.type("The sigma ");
-    expect(editor.text).toBe("The sigma ");
-    expect(editor.visibleSuggestions?.items[0]?.replacement).toBe("σ");
+  it("bare names convert automatically, case-insensitively, to the lowercase letter (spec V2 §9.1)", () => {
+    for (const word of ["sigma", "Sigma", "SIGMA"]) {
+      const { editor } = setup(product);
+      editor.type(`The ${word} `);
+      expect(editor.text, word).toBe("The σ ");
+      expect(editor.visibleSuggestions).toBeUndefined();
+    }
   });
 });
 

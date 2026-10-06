@@ -39,6 +39,36 @@ export function normalizeDocsText(text: string): string {
 }
 
 const codePoints = (text: string) => Array.from(text).length;
+/** Code points of Amper's own glyphs for diagnostics (never document text). */
+const codePointsOf = (text: string) => Array.from(text).map((c) => `U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}`).join(" ");
+
+/**
+ * Vertical alignment of a copied range, from Docs' clipboard HTML. Every Docs span
+ * carries an explicit vertical-align (verified live: "baseline"); subscript is "sub".
+ */
+export function verticalAlignOf(html: string | null | undefined): "sub" | "baseline" | "mixed" | "unknown" {
+  if (!html) return "unknown";
+  const values = new Set([...html.matchAll(/vertical-align:\s*([a-z-]+)/g)].map((m) => m[1]));
+  if (/<sub[\s>]/i.test(html)) values.add("sub");
+  if (values.size === 0) return "unknown";
+  if (values.size > 1) return "mixed";
+  return values.has("sub") ? "sub" : values.has("baseline") ? "baseline" : "unknown";
+}
+
+/** ASCII arrow tokens a host may auto-substitute before Amper converts them (Docs: "<=>" → "⇔"). */
+const SUBSTITUTABLE_ARROWS = new Set(["->", "<-", "<->", "<=>"]);
+const ARROW_CHARACTER = /^[\u2190-\u21ff\u27f0-\u27ff\u2900-\u297f]$/u;
+
+/**
+ * If the host replaced an ASCII arrow token with a single arrow character of its
+ * own, the read-back of `expected.length` characters ends in that character.
+ * Returns it so the adapter can replace exactly that one character.
+ */
+export function hostSubstitutedArrow(copied: string, expected: string): string | undefined {
+  if (!SUBSTITUTABLE_ARROWS.has(expected)) return undefined;
+  const last = Array.from(normalizeDocsText(copied)).at(-1);
+  return last !== undefined && ARROW_CHARACTER.test(last) && last !== expected ? last : undefined;
+}
 
 /**
  * "same": identical after layout normalisation. "case-only": same letters, different
@@ -126,7 +156,16 @@ export class DocsAdapter implements EditorAdapter {
     const text = this.buffer.text;
     const removed = text.slice(text.length - rewrite.deleteCount);
     if (removed.length !== rewrite.deleteCount) return false;
-    const plan = planRewrite(removed, rewrite);
+    // Formatting is a toggle in Docs, so any formatted range must be freshly inserted (baseline)
+    // text: never keep it as "unchanged" suffix, and re-insert from the start of the rewrite.
+    const spans = (rewrite.formatting ?? []).map((s) => ({
+      start: codePoints(rewrite.insertText.slice(0, s.start)),
+      end: codePoints(rewrite.insertText.slice(0, s.end)),
+    }));
+    const insertLength = codePoints(rewrite.insertText);
+    const plan = spans.length
+      ? planRewrite(removed, rewrite, { noPrefix: true, maxKeepSuffix: Math.min(...spans.map((s) => insertLength - s.end)) })
+      : planRewrite(removed, rewrite);
     const step = codePoints(plan.keepSuffix);
     const select = codePoints(plan.deleteText);
     const started = performance.now();
@@ -147,7 +186,24 @@ export class DocsAdapter implements EditorAdapter {
           // Docs may have re-cased what was typed (sentence auto-capitalisation): same text, proceed,
           // and report the document's actual characters so Backspace restores them.
           if (match === "case-only") observedDelete = copied!;
-          if (match === "different") {
+          const substituted = match === "different" ? hostSubstitutedArrow(copied!, plan.deleteText) : undefined;
+          if (substituted) {
+            // Docs already turned e.g. "<=>" into its own "⇔". Re-select just that one character,
+            // verify it, and replace it with the canonical arrow.
+            call({ op: "moveRight", count: 1 });
+            call({ op: "selectBack", count: 1 });
+            const recheck = call({ op: "copySelection" }).text;
+            if (typeof recheck === "string" && normalizeDocsText(recheck) === substituted) {
+              observedDelete = substituted;
+              this.options.log("host-substitution", { from: codePointsOf(substituted), to: codePointsOf(plan.insertText) });
+            } else {
+              call({ op: "moveRight", count: 1 });
+              if (step) call({ op: "moveRight", count: step });
+              this.buffer.reset("verify mismatch");
+              return false;
+            }
+          }
+          if (match === "different" && !substituted) {
             // Collapse the selection to its right edge (the original caret), then restore the step.
             call({ op: "moveRight", count: 1 });
             if (step) call({ op: "moveRight", count: step });
@@ -160,6 +216,15 @@ export class DocsAdapter implements EditorAdapter {
         }
       }
       if (plan.insertText) call({ op: "insert", text: plan.insertText, strategy: this.options.strategy });
+      // Native formatting: the caret is at the end of the inserted text (before the kept boundary).
+      const insertedEnd = insertLength - step;
+      const fullText = Array.from(rewrite.insertText);
+      for (const span of spans) {
+        const distance = insertedEnd - span.end;
+        if (distance) call({ op: "moveLeft", count: distance });
+        this.applySubscript(call, span.end - span.start, fullText[span.end]);
+        if (distance) call({ op: "moveRight", count: distance });
+      }
       if (step) call({ op: "moveRight", count: step });
     } catch (error) {
       this.buffer.reset("bridge error");
@@ -167,10 +232,50 @@ export class DocsAdapter implements EditorAdapter {
       return false;
     }
     this.buffer.applyRewrite(rewrite);
-    this.options.log("applied", { stepped: step, selected: select, inserted: codePoints(plan.insertText), ms: +(performance.now() - started).toFixed(2) });
+    this.options.log("applied", {
+      stepped: step,
+      selected: select,
+      inserted: codePoints(plan.insertText),
+      // Lets a manual tester confirm the exact glyph (e.g. ⇌ is U+21CC), whatever the font shows.
+      glyphs: /^[^\p{L}\p{N}\s]+$/u.test(plan.insertText) ? codePointsOf(plan.insertText) : undefined,
+      ms: +(performance.now() - started).toFixed(2),
+    });
     if (observedDelete === undefined) return true;
     const kept = removed.length - plan.deleteText.length - plan.keepSuffix.length;
     return { ok: true, removedTail: removed.slice(0, kept) + observedDelete + plan.keepSuffix };
+  }
+
+  /**
+   * Subscripts the `length` characters before the caret and leaves the caret there.
+   * Docs' only formatting route is the ⌘/Ctrl + , toggle, so instead of trusting it:
+   *  1. read the range back (clipboard HTML) and toggle again if it is still baseline;
+   *  2. check the next character (the boundary the user typed) and un-toggle it if
+   *     subscript leaked onto it, so following text stays baseline.
+   * Never throws for formatting problems: the text is already correct chemistry.
+   */
+  private applySubscript(call: (r: BridgeRequest) => Extract<BridgeResponse, { ok: true }>, length: number, nextChar: string | undefined): void {
+    const readAlign = () => verticalAlignOf(call({ op: "copySelectionHtml" }).text);
+    call({ op: "selectBack", count: length });
+    call({ op: "toggleSubscript" });
+    let align = readAlign();
+    if (align === "baseline") {
+      call({ op: "toggleSubscript" });
+      align = readAlign();
+    }
+    call({ op: "moveRight", count: 1 }); // collapse to the label's right edge
+    let leak: string = "none";
+    if (nextChar !== undefined && nextChar !== "\n") {
+      call({ op: "selectForward", count: 1 });
+      const after = readAlign();
+      if (after === "sub") {
+        call({ op: "toggleSubscript" });
+        leak = readAlign() === "sub" ? "unfixed" : "fixed";
+      } else if (after === "unknown") {
+        leak = "unverified";
+      }
+      call({ op: "moveLeft", count: 1 }); // collapse back to the label's right edge
+    }
+    this.options.log("formatted", { style: "subscript", length, verified: align, leak });
   }
 
   onTextInput(handler: (e: EditorInputEvent) => void): Disposable {

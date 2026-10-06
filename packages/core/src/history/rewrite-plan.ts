@@ -17,11 +17,19 @@ export interface RewritePlan {
  *
  * Operates on whole code points so a surrogate pair is never split.
  */
-export function planRewrite(removedTail: string, rewrite: TailRewrite): RewritePlan {
+export interface PlanOptions {
+  /** Never keep more than this many trailing code points (formatting spans must be re-inserted). */
+  maxKeepSuffix?: number;
+  /** Do not skip unchanged leading characters. */
+  noPrefix?: boolean;
+}
+
+export function planRewrite(removedTail: string, rewrite: TailRewrite, options: PlanOptions = {}): RewritePlan {
   const removed = Array.from(removedTail);
   const inserted = Array.from(rewrite.insertText);
   let suffix = 0;
   while (
+    suffix < (options.maxKeepSuffix ?? Infinity) &&
     suffix < removed.length &&
     suffix < inserted.length &&
     removed[removed.length - 1 - suffix] === inserted[inserted.length - 1 - suffix]
@@ -30,6 +38,7 @@ export function planRewrite(removedTail: string, rewrite: TailRewrite): RewriteP
   }
   let prefix = 0;
   while (
+    !options.noPrefix &&
     prefix < removed.length - suffix &&
     prefix < inserted.length - suffix &&
     removed[prefix] === inserted[prefix]

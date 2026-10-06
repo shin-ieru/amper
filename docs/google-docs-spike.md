@@ -4,7 +4,7 @@
 
 ## Conclusion
 
-**Viable with documented limitations — provisional on one unverified link.**
+**Viable with documented limitations.** Update 2026-10-06: the product owner has manually verified that the extension attaches to and edits a real, editable Google Doc, closing the one link this spike could not test (below, kept for the record). Per-row results for lists, tables, pageless, Suggesting mode, collaboration, IME and screen readers are still to be recorded under "Edit-mode results".
 
 A Manifest V3 extension can observe typing in current Google Docs, model the text just before the caret, select exactly the characters to replace, **read them back to verify** before touching them, intercept Backspace/Tab/Esc, and show an inline suggestion UI. Each of those mechanisms was **verified against live Google Docs** (details below).
 
@@ -106,12 +106,21 @@ Status key: **✅ verified live** · **🟡 implemented, verified off-Docs only*
 7. **Automated Docs E2E needs a dedicated test Google account** plus Chrome for Testing or Chromium. Branded Chrome 137+ ignores `--load-extension` ([PSA][loadext]).
 8. **No Apps Script path for live typing** (F13). Apps Script remains useful only for explicit commands, bulk formatting and a sidebar (spec §40).
 
+## Findings from manual editable-doc testing
+
+| # | Finding | Handling |
+|---|---|---|
+| M1 | Docs sentence auto-capitalisation re-cases typed words (`capital` → `Capital`) behind Amper's model | Case-only read-back differences proceed; the session records the document's real text (product milestone) |
+| M2 | `<=>` did not end as the equilibrium arrow ⇌. The engine emits U+21CC (verified by code point), so the likely cause is Docs' own automatic substitutions rewriting the ASCII token (e.g. to ⇔) before Amper converts it. I could not confirm Docs' exact default list from public sources | The adapter no longer depends on any list: when the read-back of an ASCII arrow token ends in a single host arrow character, Amper re-selects that character, verifies it, and replaces it with the canonical glyph. Diagnostics log Amper's inserted code points (never document text) for retest |
+| M3 (validated 2026-10-06) | Native subscript is only reachable as a *toggle* (⌘/Ctrl + ,), and Docs inherits the formatting of the preceding character for new text, so subscript could leak into what follows | The adapter (1) re-inserts any label it formats, so it is baseline before toggling; (2) **reads the label back** through the synthetic copy's `text/html` and toggles again if it is still baseline; (3) selects the following character, reads it back, and un-toggles it if subscript leaked; (4) logs `formatted … verified: sub/baseline/unknown, leak: none/fixed/unfixed/unverified`. If Docs ignores the shortcut, the text stays correct (baseline) and the log says so. Nothing is faked |
+| M4 | Docs' clipboard HTML carries `vertical-align` on every span (live: `vertical-align:baseline`), so formatting can be *read back* | `probe-format-html.mjs`; `validate-bridge.mjs` also verifies forward selection and left-collapse live. `vertical-align:sub` for subscript text is Docs' expected export but could not be observed on a view-only doc |
+
 ## Manual validation protocol (editable document)
 
 The tester needs a Google account, about 15 minutes, and Chrome 111 or later.
 
 1. `npm run build:extension`, then open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and choose `apps/google-docs-extension/dist`.
-2. Open `https://docs.new`. Amper is chemistry-aware whenever it is enabled; there is no mode to choose. In the popup, open **Developer / testing**, turn on **Console diagnostics**, and reload the doc. Open DevTools → Console and filter for `[Amper]`.
+2. Open `https://docs.new`. Amper is chemistry-aware whenever it is enabled; there is no mode to choose. Subscript state labels are on by default (popup checkbox). In the popup, open **Developer / testing**, turn on **Console diagnostics**, and reload the doc. Open DevTools → Console and filter for `[Amper]`.
 3. Run each row with **Insertion: Synthetic keypress** (Developer / testing), then repeat the failing rows with **Synthetic paste**.
 
 | ID | Do | Expect | Answers |
@@ -135,7 +144,7 @@ Record the results, plus the popup's **Run environment probe** output, in this f
 
 ## Edit-mode results
 
-_Pending: fill in after running the manual protocol above. Then update the conclusion and ADR-003._
+**2026-10-06, product owner, editable Google Doc:** native subscript state labels work for `(s)`, `(l)`, `(g)` and `(aq)`; following text returns to baseline; `equi` → ⇌ works as intended (T24, T25, T28 pass, as reported). The remaining rows below are still to be recorded individually.
 
 | Field | Value |
 |---|---|
@@ -166,6 +175,15 @@ _Pending: fill in after running the manual protocol above. Then update the concl
 | T17 (product) At the start of a paragraph type `capital sigma ` (Docs capitalises it) | | Expect exactly `Σ `; Backspace → `Capital sigma` |
 | T18 (product) type `h2so4 `, `nacl `, `fecl3 ` | | Expect `H₂SO₄ `, `NaCl `, `FeCl₃ ` with no Tab; Backspace restores the lowercase |
 | T19 (product) type `H2O, ` | | Converts at the comma |
+| T20 (V2) type `sigma `, `Sigma `, `OMEGA `, `delta, ` | | `σ ω δ` automatically, no Tab; Backspace after `Sigma ` → `Sigma` |
+| T21 (V2) type `capital sigma `, `small theta ` | | `Σ`, `θ`; never `Capital σ` |
+| T22 (V2) type `H2O <=> ` and `equilibrium arrow ` with Docs substitutions **on** | | Both exactly ⇌ (console `applied … glyphs: U+21CC`; `host-substitution` if Docs rewrote it first) |
+| T23 (V2) type `H2O <-> ` | | ⇄ (U+21C4), not ⇌ or ↔ |
+| T24 type `H2O(l) is water` | | `(l)` subscript (whole label, both parentheses); `is water` baseline; console `formatted … verified: "sub", leak: "none"` |
+| T25 type `H2O(l) NaCl(aq) CO2(g) CaCO3(s) done` | | each label subscript, spaces and `done` baseline |
+| T26 after `H2O(l) `, press Backspace | | `H2O(l)` restored as plain baseline text |
+| T27 after `CO2(g) `, press ⌘/Ctrl+Z repeatedly | | record how many steps undo the formatting and the text |
+| T28 type `equi `, `Equi `, `EQUI `, and `equilibrium equipment ` | | `⇌` (U+21CC) three times; the words unchanged; Backspace after `Equi ` → `Equi` |
 
 ## Alternatives considered
 

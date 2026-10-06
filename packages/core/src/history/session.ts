@@ -176,9 +176,14 @@ export class AmperSession {
       insertedTail: s.replacement + tailAfterSpan,
       // Accepting is deliberate, so Backspace puts back exactly what was there.
       restoreText: removedTail,
+      ...(s.formatting && { formatting: s.formatting }),
     });
     this.pending = this.settings().backspaceRestore ? tx : undefined;
-    return { kind: "rewrite", rewrite: { deleteCount: removedTail.length, insertText: tx.insertedTail }, transaction: tx };
+    return {
+      kind: "rewrite",
+      rewrite: { deleteCount: removedTail.length, insertText: tx.insertedTail, ...(s.formatting && { formatting: s.formatting }) },
+      transaction: tx,
+    };
   }
 
   /**
@@ -198,11 +203,17 @@ export class AmperSession {
    */
   amendTransaction(id: string, removedTail: string): AmperTransaction | undefined {
     const tx = this.pending;
-    if (!tx || tx.id !== id || removedTail.length !== tx.removedTail.length) return undefined;
+    if (!tx || tx.id !== id) return undefined;
+    // The boundary and any trailing punctuation after the token are unchanged by the host;
+    // only the token itself may differ (re-cased, or replaced by a host substitution).
     const boundaryLength = tx.removedTail.length - tx.restoreText.length;
+    const afterToken = tx.removedTail.length - tx.originalText.length;
+    if (removedTail.length < afterToken || !removedTail.endsWith(tx.removedTail.slice(tx.removedTail.length - afterToken))) {
+      return undefined;
+    }
     tx.removedTail = removedTail;
     tx.restoreText = removedTail.slice(0, removedTail.length - boundaryLength);
-    tx.originalText = removedTail.slice(0, tx.originalText.length);
+    tx.originalText = removedTail.slice(0, removedTail.length - afterToken);
     return tx;
   }
 
@@ -254,11 +265,12 @@ export class AmperSession {
       insertedTail: r.replacement + textBefore.slice(r.end) + boundary,
       // Spec §8: Backspace restores what was typed, without the boundary.
       restoreText: textBefore.slice(r.start),
+      ...(r.formatting && { formatting: r.formatting }),
     });
     this.pending = this.settings().backspaceRestore ? tx : undefined;
     return {
       kind: "rewrite",
-      rewrite: { deleteCount: removedTail.length, insertText: tx.insertedTail },
+      rewrite: { deleteCount: removedTail.length, insertText: tx.insertedTail, ...(r.formatting && { formatting: r.formatting }) },
       transaction: tx,
       decision,
     };

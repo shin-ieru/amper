@@ -19,6 +19,7 @@
       details.dev summary { cursor: pointer; color: var(--muted); font-size: 12px; }
       details.dev[open] summary { margin-bottom: 4px; }
       details.dev label, details.dev > div { margin-top: 3px; }
+      .hint { color: var(--muted); font-size: 11px; }
       .note { margin: 0; color: var(--muted); font-size: 11px; }
       pre { margin: 6px 0 0; max-height: 220px; overflow: auto; font: 11px/1.4 ui-monospace, Menlo, monospace; background: #f8f9fa; padding: 6px; border-radius: 6px; white-space: pre-wrap; }
       .privacy { color: var(--muted); font-size: 11px; }
@@ -27,13 +28,14 @@
   <body>
     <header>
       <strong>Amper</strong>
-      <p>Type <b>h2so4</b>, <b>capital sigma</b> or <b>2H2 + O2 -&gt; 2H2O</b>. Backspace restores what you typed.</p>
+      <p>Type <b>h2so4</b>, <b>sigma</b>, <b>equi</b> or <b>2H2 + O2 -&gt; 2H2O</b>. Backspace restores what you typed.</p>
     </header>
     <section>
       <label><input type="checkbox" id="enabled" /> Enable Amper</label>
       <label><input type="checkbox" id="autoConvert" /> Automatic conversion</label>
       <label><input type="checkbox" id="autocomplete" /> Autocomplete</label>
       <label><input type="checkbox" id="backspaceRestore" /> Backspace restores original</label>
+      <label><input type="checkbox" id="subscriptStates" /> Subscript state labels <span class="hint">(s) (l) (g) (aq)</span></label>
     </section>
     <details class="dev">
       <summary>Developer / testing</summary>

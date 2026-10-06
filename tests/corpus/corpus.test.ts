@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createEngine, resolveSettings, type AmperMode } from "@amper/core";
 import { setup } from "../integration/virtual-editor";
 import { ALL_FORMULAS, FORMULA_CORPUS, SINGLE_ELEMENT_SUGGESTED } from "./formulas";
-import { NEGATIVE_TOKENS, NO_CONVERSION_SENTENCES } from "./negative";
+import { NEGATIVE_TOKENS, NO_CONVERSION_SENTENCES, SUPERSEDED_GREEK_PROSE } from "./negative";
 
 const SUB = "₀₁₂₃₄₅₆₇₈₉";
 
@@ -91,5 +91,13 @@ describe("negative corpus", () => {
       if (decision.action !== "none") suggested.push(token);
     }
     expect(suggested).toEqual([]);
+  });
+});
+
+describe("superseded no-conversion examples (spec V2 §9.1 over V1/V2 §68)", () => {
+  it.each(SUPERSEDED_GREEK_PROSE)("%j now converts to %j", (input, expected) => {
+    const { editor } = setup({ mode: "chemistry" });
+    editor.type(`${input}\n`);
+    expect(editor.text).toBe(`${expected}\n`);
   });
 });

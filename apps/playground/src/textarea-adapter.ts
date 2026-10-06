@@ -46,6 +46,9 @@ export class TextareaAdapter implements EditorAdapter {
   applyRewrite({ deleteCount, insertText }: TailRewrite): boolean {
     const caret = this.el.selectionStart;
     if (caret !== this.el.selectionEnd || deleteCount > caret) return false;
+    // Formatting-only rewrite (subscript state labels): a textarea has no formatting, and
+    // re-inserting identical text would only add an empty undo step.
+    if (this.el.value.slice(caret - deleteCount, caret) === insertText) return true;
     this.el.setSelectionRange(caret - deleteCount, caret);
     const ok = document.execCommand("insertText", false, insertText);
     if (!ok) {

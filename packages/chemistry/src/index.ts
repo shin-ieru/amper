@@ -39,6 +39,7 @@ export {
   type ReadingKind,
 } from "./formulas/charges";
 export { parseConfigToken, type ConfigToken, type Orbital, type Subshell } from "./electron-config";
+export { ARROW_DEFINITIONS, arrowGlyph, type ArrowDefinition } from "./arrows";
 export {
   parseArrowToken,
   parseElectronToken,

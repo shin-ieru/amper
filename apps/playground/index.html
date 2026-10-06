@@ -24,13 +24,13 @@
     <main class="layout">
       <section class="editor-column" aria-label="Editor">
         <p class="intro">
-          <strong>Write chemistry normally.</strong> Type <code>h2so4</code>, <code>capital sigma</code> or
+          <strong>Write chemistry normally.</strong> Type <code>h2so4</code>, <code>sigma</code>, <code>equi</code> or
           <code>2H2 + O2 -&gt; 2H2O</code> followed by a space. If Amper guesses wrong, press Backspace to restore
           exactly what you typed.
         </p>
         <label class="visually-hidden" for="editor">Document</label>
         <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
-          placeholder="Try: h2so4, capital sigma, SO4^2-, equilib…, 2H2 + O2 -> 2H2O"></textarea>
+          placeholder="Try: h2so4, sigma, capital sigma, equi, SO4^2-, N2 + 3H2 equi 2NH3"></textarea>
         <div class="status" id="status" aria-live="polite"></div>
       </section>
 
@@ -55,6 +55,12 @@
             <label><input type="checkbox" data-category="electron" checked /> Electron configurations</label>
             <label><input type="checkbox" data-category="custom" checked /> Custom replacements</label>
           </fieldset>
+          <label class="block">State labels <span class="hint">presentation only; a textarea cannot format</span>
+            <select id="stateLabels">
+              <option value="subscript">Subscript (product default; native formatting in Google Docs)</option>
+              <option value="baseline">Baseline: H₂O(l)</option>
+            </select>
+          </label>
           <label class="block">Never convert <span class="hint">one per line</span>
             <textarea id="never" rows="2" spellcheck="false"></textarea>
           </label>

@@ -103,6 +103,10 @@ Identifier guards run on the typed token *upper-cased* too, so `usb3`, `css3`, `
 
 Tokens the user reverted, by immediate Backspace or by native Undo of a pending conversion, are *frozen* for the session. Reaction and configuration rewrites leave them exactly as typed (`spliceTokens`). At the next boundary, nothing may convert a span overlapping just-restored text.
 
+## State-label presentation (spec V2 §15)
+
+`(s)`, `(l)`, `(g)`, `(aq)` are AST data (`FormulaNode.state`). The inserted characters are always the plain label (`(l)`); Unicode subscript letters are never used. The product default (`productSettings`) is `stateLabels: "subscript"`; the engine-level default stays `"baseline"`. The setting only adds **formatting spans** (`FormatSpan`, `stateLabelRange`) to recognitions, transactions and `TailRewrite`. Text, parsing and tests of text are identical in both presentations. Hosts that support native formatting apply the spans; the playground textarea cannot. With subscript presentation, a species whose text is already final (`NaCl(aq)`) still yields a formatting-only rewrite. In Google Docs the spans become native subscript via the ⌘/Ctrl + , toggle, verified by reading the range back (see the spike doc).
+
 ## Not in Phase 2
 
 - Reaction conditions (`->[heat]`).

@@ -23,7 +23,7 @@ export {
 } from "./confidence/policy";
 export { ACRONYM_STEMS, acronymStem, COPULAS, LABEL_WORDS, NEGATIVE_LEXICON, nonProseReason } from "./confidence/context";
 export { AmperSession, type SessionOptions, type SessionOutcome } from "./history/session";
-export { planRewrite, type RewritePlan } from "./history/rewrite-plan";
+export { planRewrite, type PlanOptions, type RewritePlan } from "./history/rewrite-plan";
 export type {
   AdapterCapabilities,
   ApplyResult,

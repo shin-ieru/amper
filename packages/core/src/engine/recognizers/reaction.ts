@@ -1,9 +1,9 @@
 import { parseArrowToken, parseReactionSuffix, type TextToken } from "@amper/chemistry";
 import { reactionItemToUnicode } from "@amper/renderer";
 import { PRIORITY } from "@amper/rules";
-import type { AmperMode, Recognition, Rejection } from "../../types";
+import type { AmperMode, FormatSpan, Recognition, Rejection, StateLabelStyle } from "../../types";
 import { previousWord, trimFormulaToken, wordTokens } from "../text";
-import { evaluateSpecies, speciesNode } from "./species";
+import { evaluateSpecies, speciesNode, stateFormatting } from "./species";
 import { spliceTokens } from "./splice";
 
 const ASCII_ARROWS = new Set(["->", "<-", "<->", "<=>"]);
@@ -23,6 +23,7 @@ export function recognizeReaction(
   mode: AmperMode,
   rejections: Rejection[],
   frozen?: ReadonlySet<string>,
+  presentation: StateLabelStyle = "baseline",
 ): Recognition[] {
   const words = wordTokens(text, from);
   const lastWord = words[words.length - 1];
@@ -58,6 +59,8 @@ export function recognizeReaction(
   if (!reaction || reaction.arrowCount === 0) return [];
 
   const rendered: { start: number; end: number; text: string }[] = [];
+  /** Formatting per rendered-token index, relative to that token's text. */
+  const tokenFormatting = new Map<number, FormatSpan[]>();
   const reasons: string[] = [];
   let confidence = chemistry ? 0.97 : 0.9;
   let reactants = 0;
@@ -82,6 +85,8 @@ export function recognizeReaction(
         confidence = Math.min(confidence, best!.confidence);
         if (best!.confidence < 0.95) reasons.push(`${speciesToken.text}: ${best!.reasons[best!.reasons.length - 1]}`);
         const unicode = reactionItemToUnicode({ ...item, node: best!.node });
+        const formatting = stateFormatting(best!.node, presentation);
+        if (formatting) tokenFormatting.set(rendered.length + item.tokens.length - 1, formatting);
         item.tokens.forEach((t, i) => rendered.push({ start: t.start, end: t.end, text: unicode[i]! }));
         continue;
       }
@@ -96,8 +101,16 @@ export function recognizeReaction(
 
   const splice = spliceTokens(text, rendered, frozen);
   if (!splice) return [];
+  const formatting: FormatSpan[] = [];
+  for (const [index, spans] of tokenFormatting) {
+    const offset = splice.offsets.get(index);
+    // Frozen tokens keep the user's text, so only format tokens Amper actually rendered.
+    if (offset === undefined || splice.replacement.slice(offset, offset + rendered[index]!.text.length) !== rendered[index]!.text) continue;
+    for (const span of spans) formatting.push({ ...span, start: span.start + offset, end: span.end + offset });
+  }
   return [
     {
+      ...(formatting.length > 0 && { formatting }),
       recognizer: "reaction",
       ruleId: "reaction.equation",
       category: "reaction",

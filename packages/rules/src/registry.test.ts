@@ -45,9 +45,14 @@ describe("Greek lookup (spec §9)", () => {
     expect(replacementFor("phi")).toEqual(["φ"]);
   });
 
-  it("keeps bare names and prose-like qualifiers as suggestions", () => {
-    expect(registry.lookup("sigma")[0]).toMatchObject({ mode: "suggest", confidence: 0.75 });
-    expect(registry.lookup("small delta")[0]).toMatchObject({ mode: "suggest" });
+  it("treats bare names and small-name commands as automatic (spec V2 §9.1, §9.2)", () => {
+    expect(registry.lookup("sigma")[0]).toMatchObject({ mode: "auto", confidence: 1, replacement: "σ" });
+    expect(registry.lookup("Sigma")[0]).toMatchObject({ replacement: "σ" });
+    expect(registry.lookup("small delta")[0]).toMatchObject({ mode: "auto", replacement: "δ" });
+  });
+
+  it("keeps the cap/uc/lc shorthand suggestion-only (not in spec V2)", () => {
+    expect(registry.lookup("cap sigma")[0]).toMatchObject({ mode: "suggest" });
   });
 });
 

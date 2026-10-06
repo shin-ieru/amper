@@ -1,24 +1,22 @@
 import type { FormulaNode } from "./formulas/ast";
 import { parseFormula } from "./formulas/parser";
 
-/** Reaction arrows (spec §20). The bidirectional ⇄ and equilibrium ⇌ are kept distinct. */
-export type ArrowKind = "forward" | "backward" | "bidirectional" | "equilibrium";
+import { ARROW_DEFINITIONS, arrowGlyph, type ArrowKind } from "./arrows";
+
+export type { ArrowKind } from "./arrows";
 
 export interface ArrowInfo {
   kind: ArrowKind;
   unicode: string;
 }
 
-const ARROWS: Record<string, ArrowInfo> = {
-  "->": { kind: "forward", unicode: "→" },
-  "→": { kind: "forward", unicode: "→" },
-  "<-": { kind: "backward", unicode: "←" },
-  "←": { kind: "backward", unicode: "←" },
-  "<->": { kind: "bidirectional", unicode: "⇄" },
-  "⇄": { kind: "bidirectional", unicode: "⇄" },
-  "<=>": { kind: "equilibrium", unicode: "⇌" },
-  "⇌": { kind: "equilibrium", unicode: "⇌" },
-};
+/** Shorthand and already-rendered glyphs, both derived from the canonical arrow table. */
+const ARROWS: Record<string, ArrowInfo> = Object.fromEntries(
+  ARROW_DEFINITIONS.flatMap((definition) => {
+    const info: ArrowInfo = { kind: definition.kind, unicode: arrowGlyph(definition) };
+    return [...definition.shorthand, info.unicode].map((token) => [token, info]);
+  }),
+);
 
 export function parseArrowToken(token: string): ArrowInfo | undefined {
   return ARROWS[token];

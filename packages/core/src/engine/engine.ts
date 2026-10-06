@@ -85,9 +85,9 @@ export function createEngine(options: EngineOptions = {}): AmperEngine {
 
     const all = [
       ...recognizeNamed(text, from, registry, rejections),
-      ...recognizeSpecies(text, from, settings.mode, rejections),
+      ...recognizeSpecies(text, from, settings.mode, rejections, settings.stateLabels),
       ...(enabled.electron ? recognizeElectronConfiguration(text, from, settings.mode, frozen) : []),
-      ...(enabled.reaction ? recognizeReaction(text, from, settings.mode, rejections, frozen) : []),
+      ...(enabled.reaction ? recognizeReaction(text, from, settings.mode, rejections, frozen, settings.stateLabels) : []),
     ];
     const recognitions = all
       .filter((r) => {
@@ -155,6 +155,7 @@ function shiftSuggestion(s: AmperSuggestion, offset: number): AmperSuggestion {
 
 export function recognitionToSuggestion(r: Recognition): AmperSuggestion {
   return {
+    ...(r.formatting && { formatting: r.formatting }),
     ruleId: r.ruleId,
     category: r.category,
     label: r.label,

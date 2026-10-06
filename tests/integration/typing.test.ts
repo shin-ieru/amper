@@ -230,13 +230,13 @@ describe("suggestions and autocomplete (spec §28)", () => {
     expect(editor.visibleSuggestions).toBeUndefined();
   });
 
-  it("a bare Greek name is suggested, not converted", () => {
+  it("a bare Greek name converts automatically (spec V2 §9.1) and Backspace restores it", () => {
     const { editor } = setup();
     editor.type("The sigma ");
-    expect(editor.text).toBe("The sigma ");
-    expect(editor.visibleSuggestions?.items[0]?.replacement).toBe("σ");
-    editor.press("Tab");
     expect(editor.text).toBe("The σ ");
+    expect(editor.visibleSuggestions).toBeUndefined();
+    editor.press("Backspace");
+    expect(editor.text).toBe("The sigma");
   });
 
   it("Standard Mode suggests formulas instead of converting them", () => {

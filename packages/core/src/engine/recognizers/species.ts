@@ -11,11 +11,11 @@ import {
   parseFormula,
   type FormulaNode,
 } from "@amper/chemistry";
-import { formulaToAscii, formulaToUnicode } from "@amper/renderer";
+import { formulaToAscii, formulaToUnicode, stateLabelRange } from "@amper/renderer";
 import { PRIORITY } from "@amper/rules";
 import { ACRONYM_STEMS, acronymStem, NEGATIVE_LEXICON, nonProseReason } from "../../confidence/context";
 import { scoreSpecies } from "../../confidence/policy";
-import type { AmperCategory, AmperMode, Recognition, Rejection } from "../../types";
+import type { AmperCategory, AmperMode, FormatSpan, Recognition, Rejection, StateLabelStyle } from "../../types";
 import { previousWord, trimFormulaToken, wordTokens, type WordToken } from "../text";
 
 /** Characters that mean a token may render differently: digits, caret, signs, non-canonical dots. */
@@ -50,7 +50,20 @@ function classify(node: FormulaNode, typedCaret: boolean): Pick<SpeciesReading, 
  * Parses one candidate as a chemical species and scores every reading.
  * Readings that render identically to the input are dropped (nothing to do).
  */
-type SpeciesContextInput = { mode: AmperMode; previousWord: string | undefined; inReaction: boolean };
+type SpeciesContextInput = {
+  mode: AmperMode;
+  previousWord: string | undefined;
+  inReaction: boolean;
+  /** Keep readings whose text is unchanged (they may still carry formatting). */
+  allowUnchanged?: boolean;
+};
+
+/** Native-subscript span for a species' state label, when that presentation is chosen. */
+export function stateFormatting(node: FormulaNode, presentation: StateLabelStyle): FormatSpan[] | undefined {
+  if (presentation !== "subscript") return undefined;
+  const range = stateLabelRange(node);
+  return range ? [{ ...range, style: "subscript" }] : undefined;
+}
 
 export function evaluateSpecies(candidate: string, context: SpeciesContextInput): SpeciesEvaluation {
   const strict = evaluateStrict(candidate, context);
@@ -83,7 +96,7 @@ function evaluateStrict(
   let firstRejection: string | undefined;
   candidates.forEach((reading, index) => {
     const replacement = formulaToUnicode(reading.node);
-    if (replacement === typed) return;
+    if (replacement === typed && !context.allowUnchanged) return;
     const scored = scoreSpecies(candidate, analyzeFormula(reading.node), {
       ...context,
       chargeCertainty: interpretation?.certainty ?? "none",
@@ -209,7 +222,13 @@ export function inReactionContext(tokens: readonly WordToken[], index: number): 
 }
 
 /** The last token as a species: neutral formulas, ions, states, hydrates, isotopes (spec §12–17). */
-export function recognizeSpecies(text: string, from: number, mode: AmperMode, rejections: Rejection[]): Recognition[] {
+export function recognizeSpecies(
+  text: string,
+  from: number,
+  mode: AmperMode,
+  rejections: Rejection[],
+  presentation: StateLabelStyle = "baseline",
+): Recognition[] {
   const tokens = wordTokens(text, from);
   const token = tokens[tokens.length - 1];
   if (!token || token.end !== text.length) return [];
@@ -248,13 +267,18 @@ export function recognizeSpecies(text: string, from: number, mode: AmperMode, re
     ];
   }
 
-  const evaluation = evaluateSpecies(candidate, context);
+  // With subscript state labels, "NaCl(aq)" needs formatting even though its text is final.
+  const evaluation = evaluateSpecies(candidate, { ...context, allowUnchanged: presentation === "subscript" });
   if (!evaluation.ok) {
     const hydrate = periodHydrate(candidate, context);
     if (hydrate) return [{ ...hydrate, start: span.start, end: span.end, original: candidate }];
     return reject(evaluation.reason);
   }
-  return evaluation.readings.map((r) => ({
+  const readings = evaluation.readings
+    .map((r) => ({ r, formatting: stateFormatting(r.node, presentation) }))
+    .filter(({ r, formatting }) => r.replacement !== candidate || formatting !== undefined);
+  return readings.map(({ r, formatting }) => ({
+    ...(formatting && { formatting }),
     recognizer: "formula",
     ruleId: r.ruleId,
     category: r.category,

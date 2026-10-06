@@ -41,11 +41,16 @@ export class VirtualEditor implements EditorAdapter {
     return this.text.slice(Math.max(0, this.caret - maxChars), this.caret);
   }
 
-  applyRewrite({ deleteCount, insertText }: TailRewrite): boolean {
+  /** Text of every range a rewrite asked to format, in order (hosts with native formatting apply these). */
+  formatted: { text: string; style: string }[] = [];
+
+  applyRewrite({ deleteCount, insertText, formatting }: TailRewrite): boolean {
     if (deleteCount > this.caret) return false;
     this.snapshot();
-    this.text = this.text.slice(0, this.caret - deleteCount) + insertText + this.text.slice(this.caret);
-    this.caret = this.caret - deleteCount + insertText.length;
+    const at = this.caret - deleteCount;
+    this.text = this.text.slice(0, at) + insertText + this.text.slice(this.caret);
+    this.caret = at + insertText.length;
+    for (const span of formatting ?? []) this.formatted.push({ text: insertText.slice(span.start, span.end), style: span.style });
     return true;
   }
 

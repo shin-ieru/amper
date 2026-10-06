@@ -1,6 +1,6 @@
 # Amper
 
-Chemistry autocorrect and autocomplete for Google Docs. Type `H2SO4`, `SO4^2-`, `capital sigma` or `2H2 + O2 -> 2H2O` and Amper writes `H₂SO₄`, `SO₄²⁻`, `Σ`, `2H₂ + O₂ → 2H₂O` as ordinary editable text. Press Backspace straight after a conversion to get back exactly what you typed.
+Chemistry autocorrect and autocomplete for Google Docs. Type `h2so4`, `SO4^2-`, `sigma`, `capital sigma`, `N2 + 3H2 equi 2NH3` or `H2O(l)` and Amper writes `H₂SO₄`, `SO₄²⁻`, `σ`, `Σ`, `N₂ + 3H₂ ⇌ 2NH₃` and H₂O with a subscripted (l), all as ordinary editable text. (`<=>` also gives ⇌ for power users; `<->` gives ⇄.) Press Backspace straight after a conversion to get back exactly what you typed.
 
 Everything runs locally and deterministically. No document text leaves the device.
 
@@ -13,10 +13,12 @@ Everything runs locally and deterministically. No document text leaves the devic
 | Neutral formula parser: groups, nesting, coefficients | Done (Phase 1) |
 | Autocomplete, fuzzy suggestions, never-convert, custom rules, category toggles | Done |
 | Playground harness with debug panel | Done |
-| Google Docs spike | **Viable with documented limitations; edit-mode insertion still to be confirmed.** See [docs/google-docs-spike.md](docs/google-docs-spike.md) |
+| Google Docs spike | **Viable with documented limitations.** See [docs/google-docs-spike.md](docs/google-docs-spike.md) |
 | Charges (implicit + caret), states, hydrates, isotopes, electron configurations, ASCII arrows, full reactions | Done (Phase 2); see [docs/parser.md](docs/parser.md) |
 | Product behaviour: chemistry-aware by default, case recovery (`h2so4` → H₂SO₄), safe-punctuation triggers, Docs case-drift handling | Done |
-| Production Google Docs integration (Phase 3) | Blocked on the manual edit-mode check in the spike doc |
+| Spec V2 hardening: bare Greek names autocorrect (all 24), canonical arrow table (⇌ U+21CC, ⇄ U+21C4), Docs arrow-substitution handling, state-label presentation layer (baseline default; experimental Docs subscript) | Done |
+| `equi` → ⇌ primary shortcut; subscript state labels (native Docs formatting, self-verifying) as the product default | Done; validated manually in an editable Google Doc (2026-10-06) |
+| Google Docs editable-doc insertion | Manually verified by the product owner; lists, tables, pageless, Suggesting mode, collaboration, IME and screen readers still to be recorded in the spike doc |
 
 ## Requirements
 

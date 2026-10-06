@@ -83,6 +83,7 @@ function renderSettings() {
     box.checked = settings.categories[box.dataset.category as ToggleableCategory];
   });
   $<HTMLTextAreaElement>("#never").value = settings.neverConvert.join("\n");
+  $<HTMLSelectElement>("#stateLabels").value = settings.stateLabels;
   $<HTMLTextAreaElement>("#custom").value = settings.customRules.map((r) => `${r.input} => ${r.output}`).join("\n");
 }
 
@@ -105,6 +106,9 @@ document.querySelectorAll<HTMLInputElement>("[data-category]").forEach((box) =>
   box.addEventListener("change", () =>
     update({ categories: { ...settings.categories, [box.dataset.category!]: box.checked } }),
   ),
+);
+$<HTMLSelectElement>("#stateLabels").addEventListener("change", (e) =>
+  update({ stateLabels: (e.target as HTMLSelectElement).value as AmperSettings["stateLabels"] }),
 );
 $<HTMLTextAreaElement>("#never").addEventListener("input", (e) =>
   update({ neverConvert: (e.target as HTMLTextAreaElement).value.split("\n").map((s) => s.trim()).filter(Boolean) }),
@@ -149,6 +153,7 @@ function renderDecision(decision: EngineDecision) {
       ...row("Recognizer", `${r.recognizer} / ${r.ruleId}`),
       ...row("Confidence", band),
       ...row("Replacement", r.replacement),
+      ...(r.formatting ? row("Formatting", r.formatting.map((f) => `${f.style}: ${r.replacement.slice(f.start, f.end)}`).join(", ")) : []),
       ...row("Reason", list(r.reasons)),
     );
   } else if (decision.action === "suggest") {

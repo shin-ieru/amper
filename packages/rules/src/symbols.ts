@@ -1,3 +1,4 @@
+import { ARROW_DEFINITIONS, arrowGlyph } from "@amper/chemistry";
 import { PRIORITY, type NamedRule, type RuleGuard } from "./types";
 
 interface SymbolEntry {
@@ -12,8 +13,8 @@ interface SymbolEntry {
 }
 
 /**
- * Curated scientific symbols (spec §10) plus explicitly named arrows (§20).
- * ASCII arrow shorthand ("->", "<=>") is Phase 2 reaction work and is not here.
+ * Curated scientific symbols (spec §10). Named arrows (§20) are generated from
+ * the canonical arrow table so they always match the reaction parser.
  */
 const SYMBOLS: SymbolEntry[] = [
   { id: "plus-minus", patterns: ["plus minus", "plus-minus"], replacement: "±" },
@@ -79,24 +80,26 @@ const SYMBOLS: SymbolEntry[] = [
   // ∑ (U+2211) and ∏ (U+220F) are the n-ary operators, not the Greek letters Σ and Π.
   { id: "summation", patterns: ["summation symbol", "summation sign", "sum symbol"], replacement: "∑" },
   { id: "product", patterns: ["product symbol", "product sign"], replacement: "∏" },
-  { id: "reaction-arrow", patterns: ["reaction arrow", "forward reaction arrow"], replacement: "→" },
-  { id: "backward-arrow", patterns: ["backward arrow", "backward reaction arrow"], replacement: "←" },
-  {
-    id: "equilibrium-arrow",
-    patterns: ["equilibrium arrow", "equilibrium arrows"],
-    replacement: "⇌",
-    completeFromChars: 6,
-  },
-  {
-    id: "bidirectional-arrow",
-    patterns: ["bidirectional arrow", "two way arrow", "two-way arrow"],
-    replacement: "⇄",
-    note: "Kept distinct from the equilibrium arrow ⇌ (spec §20).",
-  },
+  // Arrows come from the canonical table in @amper/chemistry (see arrowRules below).
 ];
 
+/** Natural-language arrow aliases, one rule per arrow kind, from the canonical table. */
+export function arrowRules(): NamedRule[] {
+  return ARROW_DEFINITIONS.map((definition) => ({
+    id: `symbol.arrow.${definition.kind}`,
+    category: "symbol" as const,
+    label: definition.phrases[0]!,
+    patterns: [...definition.phrases],
+    replacement: arrowGlyph(definition),
+    mode: "auto" as const,
+    priority: PRIORITY.namedSymbol,
+    confidence: 1,
+    ...(definition.completeFromChars !== undefined && { completeFromChars: definition.completeFromChars }),
+  }));
+}
+
 export function symbolRules(): NamedRule[] {
-  return SYMBOLS.map((entry) => ({
+  return [...SYMBOLS.map((entry): NamedRule => ({
     id: `symbol.${entry.id}`,
     category: "symbol",
     label: entry.patterns[0]!,
@@ -107,7 +110,7 @@ export function symbolRules(): NamedRule[] {
     confidence: entry.mode === "suggest" ? 0.85 : 1,
     ...(entry.guards && { guards: entry.guards }),
     ...(entry.completeFromChars !== undefined && { completeFromChars: entry.completeFromChars }),
-  }));
+  })), ...arrowRules()];
 }
 
 const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";

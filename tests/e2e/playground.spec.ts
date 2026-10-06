@@ -267,3 +267,71 @@ test("settings saved under the pre-rename key survive the Chemly → Amper renam
   await page.keyboard.type("capital sigma H2O ");
   await expect(editor).toHaveValue("capital sigma H₂O ");
 });
+
+test.describe("rule-family hardening (spec V2) in a real browser", () => {
+  async function openDefault(page: Page) {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    const editor = page.locator("#editor");
+    await editor.click();
+    return editor;
+  }
+  const codePoints = (s: string) => Array.from(s).map((c) => c.codePointAt(0)!.toString(16));
+
+  for (const [input, expected] of [
+    ["sigma ", "σ "],
+    ["Sigma ", "σ "],
+    ["OMEGA ", "ω "],
+    ["delta, ", "δ, "],
+    ["Capital Sigma ", "Σ "],
+    ["small theta ", "θ "],
+  ] as const) {
+    test(`${input.trim()} → ${expected.trim()} automatically`, async ({ page }) => {
+      const editor = await openDefault(page);
+      await page.keyboard.type(input);
+      await expect(editor).toHaveValue(expected);
+      await expect(suggestionItems(page)).toHaveCount(0);
+    });
+  }
+
+  test("Sigma: Backspace restores the exact original casing", async ({ page }) => {
+    const editor = await openDefault(page);
+    await page.keyboard.type("Sigma ");
+    await page.keyboard.press("Backspace");
+    await expect(editor).toHaveValue("Sigma");
+  });
+
+  test("equilibrium arrow and <=> give exactly U+21CC; <-> gives U+21C4", async ({ page }) => {
+    const editor = await openDefault(page);
+    await page.keyboard.type("equilibrium arrow N2 + 3H2 <=> 2NH3 and H2O <-> H2O ");
+    const value = await editor.inputValue();
+    expect(value).toBe("⇌ N₂ + 3H₂ ⇌ 2NH₃ and H₂O ⇄ H₂O ");
+    expect(codePoints(value[0]!)).toEqual(["21cc"]);
+    expect(value).not.toMatch(/[⇔↔⇋]/u);
+  });
+
+  test("state labels: text stays (l)/(aq)/(g)/(s); subscript formatting is requested by default", async ({ page }) => {
+    const editor = await openDefault(page);
+    await expect(page.locator("#stateLabels")).toHaveValue("subscript");
+    await page.keyboard.type("H2O(l) NaCl(aq) CO2(g) CaCO3(s) ");
+    await expect(editor).toHaveValue("H₂O(l) NaCl(aq) CO₂(g) CaCO₃(s) ");
+    await expect(page.locator("#debug")).toContainText("subscript: (s)");
+  });
+
+  for (const form of ["equi", "Equi", "EQUI"]) {
+    test(`${form} → ⇌ (U+21CC) and Backspace restores ${form}`, async ({ page }) => {
+      const editor = await openDefault(page);
+      await page.keyboard.type(`${form} `);
+      expect(codePoints(await editor.inputValue())).toEqual(["21cc", "20"]);
+      await page.keyboard.press("Backspace");
+      await expect(editor).toHaveValue(form);
+    });
+  }
+
+  test("equilibrium, equipment and equilateral are never partially converted", async ({ page }) => {
+    const editor = await openDefault(page);
+    await page.keyboard.type("equilibrium equipment equilateral equi ");
+    await expect(editor).toHaveValue("equilibrium equipment equilateral ⇌ ");
+  });
+});

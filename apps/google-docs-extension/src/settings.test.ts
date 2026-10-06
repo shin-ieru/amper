@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LEGACY_STORAGE_KEYS, migrateLegacyStorage, type StorageAreaLike } from "./settings";
+import { LEGACY_STORAGE_KEYS, migrateLegacyStorage, migrateSettingsSchema, SETTINGS_SCHEMA_VERSION, type StorageAreaLike } from "./settings";
 
 function memoryArea(initial: Record<string, unknown>): StorageAreaLike & { data: Record<string, unknown> } {
   const data = { ...initial };
@@ -46,5 +46,25 @@ describe("Chemly → Amper storage migration", () => {
       expect(legacy.startsWith("chemly.")).toBe(true);
       expect(current).toBe(legacy.replace("chemly.", "amper."));
     }
+  });
+});
+
+describe("settings schema v2: subscript state labels become the default", () => {
+  it("drops a stateLabels value saved by older popups (it was the old default, not a choice)", async () => {
+    const area = memoryArea({ "amper.settings": { enabled: true, stateLabels: "baseline", autocomplete: false } });
+    expect(await migrateSettingsSchema(area)).toBe(true);
+    expect(area.data).toEqual({ "amper.settings": { enabled: true, autocomplete: false }, "amper.settingsVersion": SETTINGS_SCHEMA_VERSION });
+  });
+
+  it("keeps a choice made after the migration", async () => {
+    const area = memoryArea({ "amper.settings": { stateLabels: "baseline" }, "amper.settingsVersion": SETTINGS_SCHEMA_VERSION });
+    expect(await migrateSettingsSchema(area)).toBe(false);
+    expect(area.data["amper.settings"]).toEqual({ stateLabels: "baseline" });
+  });
+
+  it("works with no stored settings", async () => {
+    const area = memoryArea({});
+    await migrateSettingsSchema(area);
+    expect(area.data).toEqual({ "amper.settingsVersion": SETTINGS_SCHEMA_VERSION });
   });
 });

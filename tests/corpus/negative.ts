@@ -23,8 +23,6 @@ export const NEGATIVE_TOKENS = [
 
 /** Spec §68: sentences that must remain byte-identical after typing. */
 export const NO_CONVERSION_SENTENCES = [
-  "The sigma level increased.",
-  "The delta between the values is small.",
   "I bought an M2 MacBook.",
   "Meet me in room H2.",
   "This is version 2.0.",
@@ -38,6 +36,17 @@ export const NO_CONVERSION_SENTENCES = [
   "Take the partial derivative of f.",
   "The angstrom is a unit of length.",
   "Press the right arrow key.",
-  "A small delta in temperature.",
   "Five plus or minus two.",
+];
+
+/**
+ * Superseded by spec V2 §1A/§9.1: bare Greek names (and "small <name>") are
+ * high-confidence notation and convert automatically. V2 §68 still lists the
+ * first two as no-conversion examples; that conflict is reported, and §1A says
+ * the superseding decision wins. Immediate Backspace restores the prose.
+ */
+export const SUPERSEDED_GREEK_PROSE: [string, string][] = [
+  ["The sigma level increased.", "The σ level increased."],
+  ["The delta between the values is small.", "The δ between the values is small."],
+  ["A small delta in temperature.", "A δ in temperature."],
 ];

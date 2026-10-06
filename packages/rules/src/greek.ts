@@ -72,15 +72,15 @@ export function greekRules(): NamedRule[] {
         confidence: 1,
       },
       {
-        // "a small delta in temperature" is ordinary prose, so "small" only suggests.
+        // Spec V2 §9.2: "small theta" is an explicit lowercase command.
         id: `greek.small.${name}`,
         category: "greek",
         label: `small ${name}`,
         patterns: [`small ${name}`],
         replacement: lower,
-        mode: "suggest",
+        mode: "auto",
         priority: PRIORITY.namedSymbol,
-        confidence: 0.9,
+        confidence: 1,
         noCompletion: true,
       },
       {
@@ -107,15 +107,18 @@ export function greekRules(): NamedRule[] {
         noCompletion: true,
       },
       {
-        // A bare name ("sigma") may be a word in prose: suggestion only (spec §4.5, §55: 0.75).
+        // Spec V2 §9.1/§55: a bare Greek name is high-confidence scientific notation. Matching is
+        // case-insensitive and always yields the lowercase letter ("Sigma", "SIGMA" → σ), because
+        // English capitalisation (or Docs sentence auto-capitalisation) does not mean uppercase Greek.
+        // Explicit phrases ("capital sigma") are longer and always win the longest-match.
         id: `greek.bare.${name}`,
         category: "greek",
         label: name,
         patterns: [name],
         replacement: lower,
-        mode: "suggest",
+        mode: "auto",
         priority: PRIORITY.namedSymbol,
-        confidence: 0.75,
+        confidence: 1,
         guards: ["not-after-qualifier"],
         ...(name.length >= 4 && { completeFromChars: 4 }),
       },

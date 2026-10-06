@@ -12,6 +12,7 @@ function render() {
   for (const id of SETTING_BOXES) $<HTMLInputElement>(id).checked = state.settings[id];
   for (const id of OPTION_BOXES) $<HTMLInputElement>(id).checked = state.options[id];
   $<HTMLSelectElement>("strategy").value = state.options.strategy;
+  $<HTMLInputElement>("subscriptStates").checked = state.settings.stateLabels === "subscript";
 }
 
 async function update(settings: Partial<AmperSettings>, options: Partial<ExtensionOptions> = {}) {
@@ -24,6 +25,9 @@ async function main() {
   render();
   for (const id of SETTING_BOXES) $<HTMLInputElement>(id).addEventListener("change", (e) => update({ [id]: (e.target as HTMLInputElement).checked }));
   for (const id of OPTION_BOXES) $<HTMLInputElement>(id).addEventListener("change", (e) => update({}, { [id]: (e.target as HTMLInputElement).checked }));
+  $<HTMLInputElement>("subscriptStates").addEventListener("change", (e) =>
+    update({ stateLabels: (e.target as HTMLInputElement).checked ? "subscript" : "baseline" }),
+  );
   $<HTMLSelectElement>("strategy").addEventListener("change", (e) =>
     update({}, { strategy: (e.target as HTMLSelectElement).value as ExtensionOptions["strategy"] }),
   );

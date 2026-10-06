@@ -11,7 +11,7 @@ export function spliceTokens(
   text: string,
   rendered: readonly { start: number; end: number; text: string }[],
   frozen: ReadonlySet<string> = new Set(),
-): { start: number; end: number; replacement: string } | undefined {
+): { start: number; end: number; replacement: string; offsets: Map<number, number> } | undefined {
   // Tokens the user reverted stay as typed; the last token is the one being evaluated now.
   const tokens = rendered.map((t, i) => {
     const original = text.slice(t.start, t.end);
@@ -23,9 +23,13 @@ export function spliceTokens(
   const end = tokens[tokens.length - 1]!.end;
   let replacement = "";
   let cursor = start;
-  for (const token of tokens.slice(first)) {
-    replacement += text.slice(cursor, token.start) + token.text;
+  /** Rendered-token index → its start offset within `replacement`. */
+  const offsets = new Map<number, number>();
+  tokens.slice(first).forEach((token, i) => {
+    replacement += text.slice(cursor, token.start);
+    offsets.set(first + i, replacement.length);
+    replacement += token.text;
     cursor = token.end;
-  }
-  return { start, end, replacement };
+  });
+  return { start, end, replacement, offsets };
 }

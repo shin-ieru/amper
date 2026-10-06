@@ -103,3 +103,14 @@ export function reactionItemToUnicode(item: ReactionItem): string[] {
     }
   }
 }
+
+/**
+ * Range of the physical-state label "(aq)" within formulaToUnicode(node). The
+ * label is always rendered last, as baseline text; this range lets hosts apply
+ * native subscript formatting without changing the text (spec V2 §15.2).
+ */
+export function stateLabelRange(node: FormulaNode): { start: number; end: number } | undefined {
+  if (!node.state) return undefined;
+  const text = formulaToUnicode(node);
+  return { start: text.length - node.state.length - 2, end: text.length };
+}
