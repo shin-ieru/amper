@@ -15,7 +15,9 @@ const browser = await chromium.launch({ headless: true });
 try {
   for (const size of [16, 32, 48, 128]) {
     const page = await browser.newPage({ viewport: { width: size, height: size }, deviceScaleFactor: 1 });
-    await page.setContent(iconSvg);
+    if (!iconSvg.includes('width="128" height="128"')) throw new Error("Unexpected Amper icon SVG dimensions.");
+    const sizedIconSvg = size === 128 ? iconSvg : iconSvg.replace('width="128" height="128"', `width="${size}" height="${size}"`);
+    await page.setContent(`<style>html,body{width:100%;height:100%;margin:0}body>svg{display:block}</style>${sizedIconSvg}`);
     await page.screenshot({ path: resolve(iconDir, `icon${size}.png`), omitBackground: true });
     await page.close();
   }

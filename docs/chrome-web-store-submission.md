@@ -1,16 +1,16 @@
-# Chrome Web Store submission: Amper v0.1.3
+# Chrome Web Store submission: Amper v0.1.4
 
-Prepared 6 October 2026 from the current Amper implementation. The v0.1.3 release adds extension icons, a 440×280 promotional image, and public landing/privacy pages; chemistry recognition and conversion behavior is unchanged. Nothing has been submitted to Google.
+Prepared 6 October 2026 from the current Amper implementation. The v0.1.4 release updates the extension and store icon to a simple blue equilibrium symbol; chemistry recognition and conversion behavior is unchanged. Nothing has been submitted to Google.
 
 ## Release package
 
-- Archive: amper-v0.1.3.zip at the repository root
+- Archive: amper-v0.1.4.zip at the repository root
 - Build source: apps/google-docs-extension/dist
 - ZIP root: manifest.json
-- Archive size: 41,381 bytes (107,974 uncompressed bytes)
+- Archive size: 40,842 bytes (107,383 uncompressed bytes)
 - Contents: 11 files — manifest.json, bridge.js, content.js, popup.html, popup.js, reference.html, reference.js, and four icon PNGs
-- SHA-256: e4a83cb131e927cec8f6eed0cbf8e50a112715b6c4210e2343353a76fc92811d
-- Version: 0.1.3 in the extension manifest and all workspace package metadata
+- SHA-256: 4ab87b530e33bf29b6e407807738aabd4a2910d3f7d987160c496397f860f730
+- Version: 0.1.4 in the extension manifest and all workspace package metadata
 
 The ZIP contains only the production extension files needed by the current build, including `icons/icon16.png`, `icons/icon32.png`, `icons/icon48.png`, and `icons/icon128.png`. It excludes TypeScript sources, test files, source maps, caches, repository metadata, and development-only files not emitted by the build.
 
@@ -21,7 +21,7 @@ The ZIP contains only the production extension files needed by the current build
 - Production browser suite: passed — 63 tests (`npm run e2e`).
 - Production extension popup/reference, consent, and icon suite: passed — 11 tests (`npm run e2e:extension`).
 - Production extension build: passed (`npm run build:extension`).
-- ZIP integrity and contents inspection: passed — 11 production files, `manifest.json` at the ZIP root, version 0.1.3, all four manifest icons present at their declared dimensions.
+- ZIP integrity and contents inspection: passed — 11 production files, `manifest.json` at the ZIP root, version 0.1.4, all four manifest icons present at their declared dimensions.
 - Total automated test cases across the suites: 859 (785 Vitest + 63 production browser + 11 production extension browser).
 
 ## Packaged manifest facts
@@ -164,7 +164,7 @@ The repository has no LICENSE file. No license has been selected or added. Decid
 
 The public `/privacy/` page is generated from `PRIVACY.md` by `scripts/render-pages.mjs`; the repository Markdown remains the source of truth.
 
-GitHub Pages deploys the checked-in `site/` directory through `.github/workflows/pages.yml`. The repository's Pages source must be set to **GitHub Actions**; the current unauthenticated URLs return 404 until that source is enabled and a deployment succeeds.
+GitHub Pages deploys the checked-in `site/` directory through `.github/workflows/pages.yml`. The workflow completed successfully, and the homepage, privacy page, and support URL returned HTTP 200 when checked without authentication.
 
 ## Review blockers and risks
 
@@ -182,7 +182,7 @@ Google's current policy requires an accurate privacy policy when an extension ha
 - [ ] Choose Public or Unlisted visibility and intended distribution regions.
 - [ ] Complete the Privacy practices dashboard using disclosures consistent with the package and PRIVACY.md.
 - [ ] Complete single purpose, permission justifications, data-use answers, and certifications.
-- [ ] Publish and verify the privacy policy URL while signed out.
+- [x] Publish and verify the privacy policy URL while signed out.
 - [ ] Confirm current disclosure/consent compliance before enabling public distribution.
 - [ ] Upload the icon, screenshots, and small promo image.
 - [ ] Keep listing claims consistent with what the build actually does; do not imply Google endorsement.
@@ -190,17 +190,17 @@ Google's current policy requires an accurate privacy policy when an extension ha
 
 ## Manual pre-submission checklist
 
-- [ ] Confirm the release commit/tag is v0.1.3 and the working tree is clean.
+- [x] Confirm the release commit/tag is v0.1.4 and the working tree is clean.
 - [x] Run npm run typecheck, npm test, npm run e2e, and npm run e2e:extension.
 - [x] Run npm run build:extension.
-- [x] Inspect amper-v0.1.3.zip and confirm manifest.json is at the ZIP root, version is 0.1.3, and all 11 production runtime files are present.
+- [x] Inspect amper-v0.1.4.zip and confirm manifest.json is at the ZIP root, version is 0.1.4, and all 11 production runtime files are present.
 - [x] Check that the ZIP contains no secrets, source maps, tests, caches, or repository artifacts.
 - [x] Add the extension/store icon and small promo image.
 - [ ] Load the extracted ZIP in a clean Chrome profile and verify the popup and shortcut reference.
 - [ ] In an editable Google Doc, try h2so4, sigma, equi, H2O(l), and 2H2 + O2 -> 2H2O; verify Backspace restore and negative examples such as Room H2.
 - [ ] Resolve the policy requirement for prominent disclosure and affirmative consent before installation; first-run popup consent is post-install.
-- [ ] Confirm the homepage, privacy, and support URLs are publicly reachable while signed out.
-- [ ] Confirm the GitHub Pages workflow completed successfully and the deployed homepage/privacy pages return HTTP 200 while signed out.
+- [x] Confirm the homepage, privacy, and support URLs are publicly reachable while signed out.
+- [x] Confirm the GitHub Pages workflow completed successfully and the deployed homepage/privacy pages return HTTP 200 while signed out.
 - [ ] Upload the package and complete the listing and Privacy practices fields. Review the dashboard preview before submitting.
 
 No submission to Google has been made.
