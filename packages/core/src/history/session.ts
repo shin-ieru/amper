@@ -296,7 +296,11 @@ export class AmperSession {
       restoreText: presentTail,
       reversible: false,
     });
-    return { kind: "rewrite", rewrite: { deleteCount: presentTail.length, insertText: tx.restoreText }, transaction: restoreTx };
+    return {
+      kind: "rewrite",
+      rewrite: { deleteCount: presentTail.length, insertText: tx.restoreText, ...(tx.formatting?.length && { plain: true }) },
+      transaction: restoreTx,
+    };
   }
 
   /** Record that the user reverted a conversion: demotion counts and frozen tokens. */

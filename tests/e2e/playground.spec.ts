@@ -63,6 +63,63 @@ test.describe("milestone 1 in a real browser", () => {
     const caret = await editor.evaluate((el: HTMLTextAreaElement) => el.selectionStart);
     expect(caret).toBe(2);
   });
+
+  test("caret superscripts convert; bare fractions are only offered and Tab applies them", async ({ page }) => {
+    const editor = await open(page);
+    // Bare a/b is suggestion-only (pre-v0.1.5 decision): typing on leaves it exactly as typed.
+    await page.keyboard.type("x^2 x/y t/v a/b b/y β/γ ");
+    await expect(editor).toHaveValue("x² x/y t/v a/b b/y β/γ ");
+    await page.keyboard.type("then 5/4 ");
+    await expect(editor).toHaveValue("x² x/y t/v a/b b/y β/γ then 5/4 ");
+    await expect(suggestionItems(page).first()).toContainText("5⁄4");
+    await page.keyboard.press("Tab");
+    await expect(editor).toHaveValue("x² x/y t/v a/b b/y β/γ then 5⁄4 ");
+    await page.keyboard.press("Backspace");
+    await expect(editor).toHaveValue("x² x/y t/v a/b b/y β/γ then 5/4 ");
+  });
+
+  test("frac(...) converts automatically with no Tab", async ({ page }) => {
+    const editor = await open(page);
+    await page.keyboard.type("frac(5/4) frac(x/y) ");
+    await expect(editor).toHaveValue("5⁄4 x⁄y ");
+    await expect(suggestionItems(page)).toHaveCount(0);
+  });
+
+  test("Backspace restores a caret exponent exactly", async ({ page }) => {
+    const editor = await open(page);
+    await page.keyboard.type("x^2 ");
+    await expect(editor).toHaveValue("x² ");
+    await page.keyboard.press("Backspace");
+    await expect(editor).toHaveValue("x^2");
+  });
+
+  test("caret numeric exponent family works in the browser", async ({ page }) => {
+    const editor = await open(page);
+    await page.keyboard.type("x^12 cm^2 m^3 10^-3 ");
+    await expect(editor).toHaveValue("x¹² cm² m³ 10⁻³ ");
+  });
+
+  test("explicit subscripts convert as editable text and Backspace restores exactly", async ({ page }) => {
+    const editor = await open(page);
+    await page.keyboard.type("x_2 V_max x_-1 ");
+    await expect(editor).toHaveValue("x₂ Vₘₐₓ x₋₁ ");
+    await page.keyboard.press("Backspace");
+    await expect(editor).toHaveValue("x₂ Vₘₐₓ x_-1");
+  });
+
+  test("identifier and code-like underscore contexts stay unchanged", async ({ page }) => {
+    const editor = await open(page);
+    const protectedText = "variable_name snake_case _private const x_2 `x_2` ";
+    await page.keyboard.type(protectedText);
+    await expect(editor).toHaveValue(protectedText);
+  });
+
+  test("slash paths, labels, code, and units stay unchanged", async ({ page }) => {
+    const editor = await open(page);
+    const protectedText = "https://example.com/t/v ./src/t/v 2026/10/06 and/or n/a `t/v` const t/v km/h m/s ";
+    await page.keyboard.type(protectedText);
+    await expect(editor).toHaveValue(protectedText);
+  });
 });
 
 test.describe("autocomplete overlay", () => {
@@ -362,5 +419,38 @@ test.describe("elemental molecules in a real browser", () => {
     await expect(editor).toHaveValue("n2");
     await page.keyboard.type(" Room H2 and Model H2 ");
     await expect(editor).toHaveValue("n2 Room H2 and Model H2 ");
+  });
+});
+
+test.describe("explicit formatting shortcuts (production build)", () => {
+  async function openDefault(page: Page) {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    const editor = page.locator("#editor");
+    await editor.click();
+    return editor;
+  }
+
+  for (const [typed, text, formatting] of [
+    ["x sup(2) ", "x2 ", "superscript: 2"],
+    ["V sub(max) ", "Vmax ", "subscript: max"],
+    ["frac(12/24) ", "12⁄24 ", "superscript: 12"],
+    ["frac(P sub(0.5 atm) / P sub(1 bar)) ", "P0.5 atm ⁄ P1 bar ", "subscript: 0.5 atm"],
+  ] as const) {
+    test(`${typed.trim()} removes the syntax and requests native formatting`, async ({ page }) => {
+      const editor = await openDefault(page);
+      await page.keyboard.type(typed);
+      await expect(editor).toHaveValue(text);
+      await expect(page.locator("#debug")).toContainText(formatting);
+      await page.keyboard.press("Backspace");
+      await expect(editor).toHaveValue(typed.trimEnd());
+    });
+  }
+
+  test("temperature shortcuts; kelvin has no shortcut and 298 K is kept as typed", async ({ page }) => {
+    const editor = await openDefault(page);
+    await page.keyboard.type("25degC 72degF 298 K 298degK deg ");
+    await expect(editor).toHaveValue("25°C 72°F 298 K 298degK ° ");
   });
 });

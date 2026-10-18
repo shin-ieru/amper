@@ -44,15 +44,38 @@ const codePointsOf = (text: string) => Array.from(text).map((c) => `U+${c.codePo
 
 /**
  * Vertical alignment of a copied range, from Docs' clipboard HTML. Every Docs span
- * carries an explicit vertical-align (verified live: "baseline"); subscript is "sub".
+ * carries an explicit vertical-align (verified live: "baseline", "sub", or "super").
  */
-export function verticalAlignOf(html: string | null | undefined): "sub" | "baseline" | "mixed" | "unknown" {
+export function verticalAlignOf(html: string | null | undefined): "sub" | "super" | "baseline" | "mixed" | "unknown" {
   if (!html) return "unknown";
-  const values = new Set([...html.matchAll(/vertical-align:\s*([a-z-]+)/g)].map((m) => m[1]));
-  if (/<sub[\s>]/i.test(html)) values.add("sub");
+  const values = new Set<string>();
+  const stack: { tag: string; align?: string }[] = [];
+  const tokens = /<\/?([a-z][\w:-]*)\b([^>]*)>|([^<]+)/gi;
+  const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+  for (const token of html.matchAll(tokens)) {
+    const [, rawTag, attributes = "", text] = token;
+    if (text !== undefined) {
+      if (!text) continue;
+      const align = [...stack].reverse().find((item) => item.align)?.align;
+      if (align) values.add(align);
+      continue;
+    }
+    if (!rawTag) continue;
+    const tag = rawTag.toLowerCase();
+    if (token[0].startsWith("</")) {
+      for (let index = stack.length - 1; index >= 0; index--) {
+        const item = stack.pop()!;
+        if (item.tag === tag) break;
+      }
+      continue;
+    }
+    const styleAlign = attributes.match(/\bvertical-align\s*:\s*([a-z-]+)/i)?.[1]?.toLowerCase();
+    const align = tag === "sub" ? "sub" : tag === "sup" ? "super" : styleAlign;
+    if (!voidTags.has(tag) && !token[0].endsWith("/>")) stack.push({ tag, align });
+  }
   if (values.size === 0) return "unknown";
   if (values.size > 1) return "mixed";
-  return values.has("sub") ? "sub" : values.has("baseline") ? "baseline" : "unknown";
+  return values.has("sub") ? "sub" : values.has("super") ? "super" : values.has("baseline") ? "baseline" : "unknown";
 }
 
 /** ASCII arrow tokens a host may auto-substitute before Amper converts them (Docs: "<=>" → "⇔"). */
@@ -94,6 +117,17 @@ export function compareDocsText(copied: string, expected: string): "same" | "cas
  * the unchanged boundary, Shift+ArrowLeft over the changed text, optionally
  * read it back with a synthetic copy and abort on mismatch, insert, step back.
  */
+/** How the glyph before a formatted range is protected: none, must be baseline, or keep its prior style. */
+type PreviousGlyph = "none" | "baseline" | "preserve";
+
+/** On macOS, Option types characters (⌥⇧8 is °); elsewhere Alt is for shortcuts. */
+const OPTION_TYPES = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform ?? "");
+/** A key that types `key` itself (not a shortcut). */
+const typesCharacter = (e: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "altKey">) =>
+  e.key.length === 1 && !e.ctrlKey && !e.metaKey && (!e.altKey || OPTION_TYPES);
+
+const MODIFIER_KEYS = new Set(["Shift", "CapsLock", "Alt", "AltGraph", "Control", "Meta"]);
+
 export class DocsAdapter implements EditorAdapter {
   readonly capabilities = { interceptKeys: true };
   readonly buffer = new TypingBuffer();
@@ -102,6 +136,7 @@ export class DocsAdapter implements EditorAdapter {
   private pending: (() => void) | undefined;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private composing = false;
+  private pendingNativeStyleRepair: "subscript" | "superscript" | undefined;
   private readonly bridge: (request: BridgeRequest) => BridgeResponse;
 
   constructor(
@@ -120,8 +155,10 @@ export class DocsAdapter implements EditorAdapter {
       this.listeners.push(() => t.removeEventListener(type, fn as EventListener, true));
     };
     on(win, "keydown", (e) => this.handleKeyDown(e));
+    on(win, "keyup", (e) => this.handleKeyUp(e));
     on(win, "compositionstart", () => {
       this.flush();
+      this.pendingNativeStyleRepair = undefined;
       this.composing = true;
       this.buffer.reset("composition");
       this.handlers.composition.forEach((h) => h("start"));
@@ -142,6 +179,7 @@ export class DocsAdapter implements EditorAdapter {
 
   dispose(): void {
     clearTimeout(this.timer);
+    this.pendingNativeStyleRepair = undefined;
     this.listeners.splice(0).forEach((off) => off());
     this.overlay.hide();
   }
@@ -161,11 +199,24 @@ export class DocsAdapter implements EditorAdapter {
     const spans = (rewrite.formatting ?? []).map((s) => ({
       start: codePoints(rewrite.insertText.slice(0, s.start)),
       end: codePoints(rewrite.insertText.slice(0, s.end)),
+      style: s.style,
     }));
     const insertLength = codePoints(rewrite.insertText);
-    const plan = spans.length
-      ? planRewrite(removed, rewrite, { noPrefix: true, maxKeepSuffix: Math.min(...spans.map((s) => insertLength - s.end)) })
-      : planRewrite(removed, rewrite);
+    const fullText = Array.from(rewrite.insertText);
+    // After native formatting, Docs' typing style at the caret cannot be read directly, and toggling
+    // it blindly can turn a script ON. It is observed instead: a glyph typed at the caret takes that
+    // style, so it is read back and repaired only if it came out scripted. A restore types its own
+    // last glyph last for this; after a forward conversion, the user's next keystroke is the probe
+    // (see handleKeyDown). The user's typed boundary is never retyped: Docs would run its
+    // space-triggered autocorrect (sentence capitalisation) a second time.
+    const lastGlyph = fullText.at(-1);
+    const probe = rewrite.plain && !spans.length && lastGlyph !== undefined && lastGlyph !== "\n" ? lastGlyph : undefined;
+    // Reversing a formatted conversion: kept glyphs would stay sub/super, so replace everything.
+    const plan = rewrite.plain && !spans.length
+      ? planRewrite(removed, rewrite, { noPrefix: true, maxKeepSuffix: 0 })
+      : spans.length
+        ? planRewrite(removed, rewrite, { noPrefix: true, maxKeepSuffix: Math.min(...spans.map((s) => insertLength - s.end)) })
+        : planRewrite(removed, rewrite, { nonEmptyInsert: true });
     const step = codePoints(plan.keepSuffix);
     const select = codePoints(plan.deleteText);
     const started = performance.now();
@@ -215,17 +266,33 @@ export class DocsAdapter implements EditorAdapter {
           if (match === "case-only") this.options.log("case-drift", { length: select });
         }
       }
-      if (plan.insertText) call({ op: "insert", text: plan.insertText, strategy: this.options.strategy });
-      // Native formatting: the caret is at the end of the inserted text (before the kept boundary).
-      const insertedEnd = insertLength - step;
-      const fullText = Array.from(rewrite.insertText);
+      const body = probe ? Array.from(plan.insertText).slice(0, -1).join("") : plan.insertText;
+      if (body) call({ op: "insert", text: body, strategy: this.options.strategy });
+      // Docs gives text typed over a selection the selection's formatting: clear it.
+      let scripted: "subscript" | "superscript" | undefined =
+        rewrite.plain && body ? this.clearNativeScript(call, codePoints(body)) : undefined;
+      // Native formatting: the caret is at the end of the inserted text (before the kept boundary or probe).
+      const insertedEnd = probe ? insertLength - 1 : insertLength - step;
       for (const span of spans) {
         const distance = insertedEnd - span.end;
         if (distance) call({ op: "moveLeft", count: distance });
-        this.applySubscript(call, span.end - span.start, fullText[span.end]);
+        // The glyph before a span must not be changed: inside the rewrite (a fraction slash) it is
+        // baseline unless formatted itself; before the rewrite (the base x of "x sup(2)") it keeps
+        // whatever style it had. Docs has only been seen leaking back from multi-glyph toggles.
+        const previous: PreviousGlyph = span.start > 0
+          ? spans.some((other) => other.start <= span.start - 1 && span.start - 1 < other.end) ? "none" : "baseline"
+          : text.length > rewrite.deleteCount && span.end - span.start > 1 ? "preserve" : "none";
+        scripted = this.applyNativeScript(call, span.style, span.end - span.start, fullText[span.end], previous) ?? scripted;
         if (distance) call({ op: "moveRight", count: distance });
       }
       if (step) call({ op: "moveRight", count: step });
+      if (probe) {
+        call({ op: "insert", text: probe, strategy: this.options.strategy });
+        scripted = this.ensureBaselineGlyph(call) ? undefined : (scripted ?? "superscript");
+      }
+      // Arm the check of the next typed glyph: it is typed through the bridge, read back, and
+      // repaired only if Docs typed it scripted. Nothing is toggled at the caret.
+      if (spans.length || rewrite.plain) this.pendingNativeStyleRepair = scripted ?? spans.at(-1)?.style ?? "superscript";
     } catch (error) {
       this.buffer.reset("bridge error");
       this.options.log("apply-error", { error: String(error) });
@@ -246,36 +313,122 @@ export class DocsAdapter implements EditorAdapter {
   }
 
   /**
-   * Subscripts the `length` characters before the caret and leaves the caret there.
-   * Docs' only formatting route is the ⌘/Ctrl + , toggle, so instead of trusting it:
+   * Applies native script formatting to the `length` characters before the caret.
+   * Instead of trusting Docs' ⌘/Ctrl + , or ⌘/Ctrl + . toggle:
    *  1. read the range back (clipboard HTML) and toggle again if it is still baseline;
-   *  2. check the next character (the boundary the user typed) and un-toggle it if
-   *     subscript leaked onto it, so following text stays baseline.
-   * Never throws for formatting problems: the text is already correct chemistry.
+   *  2. check the next character (the boundary the user typed) and, when asked, the
+   *     previous one (a fraction slash), and un-toggle either if the style leaked onto it;
+   *  3. the caller then verifies the typing style at the end of the rewrite (ensureBaselineGlyph).
+   * Returns the script this may have left as Docs' typing style (undefined when the last toggle
+   * turned a glyph back to baseline). Never throws for formatting problems.
    */
-  private applySubscript(call: (r: BridgeRequest) => Extract<BridgeResponse, { ok: true }>, length: number, nextChar: string | undefined): void {
+  private applyNativeScript(
+    call: (r: BridgeRequest) => Extract<BridgeResponse, { ok: true }>,
+    style: "subscript" | "superscript",
+    length: number,
+    nextChar: string | undefined,
+    previous: PreviousGlyph = "none",
+  ): "subscript" | "superscript" | undefined {
+    const target = style === "subscript" ? "sub" : "super";
+    const toggle = style === "subscript" ? "toggleSubscript" : "toggleSuperscript";
     const readAlign = () => verticalAlignOf(call({ op: "copySelectionHtml" }).text);
+    // What the glyph before the range must look like afterwards.
+    let expectedBefore: "sub" | "super" | "baseline" | undefined = previous === "baseline" ? "baseline" : undefined;
+    if (previous === "preserve") {
+      call({ op: "moveLeft", count: length });
+      call({ op: "selectBack", count: 1 });
+      const before = readAlign();
+      if (before === "sub" || before === "super" || before === "baseline") expectedBefore = before;
+      call({ op: "moveRight", count: 1 }); // collapse to the range's left edge
+      call({ op: "moveRight", count: length });
+    }
     call({ op: "selectBack", count: length });
-    call({ op: "toggleSubscript" });
+    call({ op: toggle });
     let align = readAlign();
     if (align === "baseline") {
-      call({ op: "toggleSubscript" });
+      call({ op: toggle });
       align = readAlign();
     }
+    let typing: "subscript" | "superscript" | undefined = style;
     call({ op: "moveRight", count: 1 }); // collapse to the label's right edge
+    let leakBefore: string = "none";
+    if (expectedBefore) {
+      // Docs can extend a script toggle on a multi-character selection onto the glyph before it.
+      call({ op: "moveLeft", count: length }); // the label's left edge
+      call({ op: "selectBack", count: 1 });
+      const before = readAlign();
+      if (before === target && expectedBefore !== target) {
+        call({ op: toggle });
+        const repaired = readAlign();
+        leakBefore = repaired === expectedBefore ? "fixed" : "unfixed";
+        typing = repaired === target ? style : undefined;
+      } else if (before === "unknown") {
+        leakBefore = "unverified";
+      }
+      call({ op: "moveRight", count: 1 }); // collapse back to the label's left edge
+      call({ op: "moveRight", count: length }); // and return to its right edge
+    }
     let leak: string = "none";
     if (nextChar !== undefined && nextChar !== "\n") {
       call({ op: "selectForward", count: 1 });
       const after = readAlign();
-      if (after === "sub") {
-        call({ op: "toggleSubscript" });
-        leak = readAlign() === "sub" ? "unfixed" : "fixed";
+      if (after === target) {
+        call({ op: toggle });
+        leak = readAlign() === target ? "unfixed" : "fixed";
+        typing = leak === "unfixed" ? style : undefined;
+      } else if (after === "baseline") {
+        // Docs can retain the insertion style after the boundary, even when that glyph is baseline.
+        // The caller resets the insertion style at the end of the full rewrite.
+        leak = "baseline";
       } else if (after === "unknown") {
         leak = "unverified";
       }
       call({ op: "moveLeft", count: 1 }); // collapse back to the label's right edge
     }
-    this.options.log("formatted", { style: "subscript", length, verified: align, leak });
+    this.options.log("formatted", { style, length, verified: align, leak, leakBefore });
+    return align === target ? typing : undefined;
+  }
+
+  /**
+   * Reads the glyph just typed before the caret (the probe for Docs' typing style) and, only if it
+   * came out superscript or subscript, toggles that glyph back. Toggling a selection off also
+   * leaves Docs typing baseline. Returns whether the glyph is verified baseline.
+   */
+  private ensureBaselineGlyph(call: (r: BridgeRequest) => Extract<BridgeResponse, { ok: true }>): boolean {
+    const readAlign = () => verticalAlignOf(call({ op: "copySelectionHtml" }).text);
+    call({ op: "selectBack", count: 1 });
+    const before = readAlign();
+    let after = before;
+    if (before === "sub" || before === "super") {
+      call({ op: before === "sub" ? "toggleSubscript" : "toggleSuperscript" });
+      after = readAlign();
+    }
+    call({ op: "moveRight", count: 1 }); // collapse to the right edge
+    this.options.log("caret-style", { probe: before, after });
+    return after === "baseline";
+  }
+
+  /**
+   * Makes the `length` characters before the caret baseline, verified through the clipboard
+   * HTML. A mixed range is first toggled to one script and then off. Returns the last style
+   * toggled, if any (Docs keeps it as the typing style).
+   */
+  private clearNativeScript(
+    call: (r: BridgeRequest) => Extract<BridgeResponse, { ok: true }>,
+    length: number,
+  ): "subscript" | "superscript" | undefined {
+    const readAlign = () => verticalAlignOf(call({ op: "copySelectionHtml" }).text);
+    call({ op: "selectBack", count: length });
+    let toggled: "subscript" | "superscript" | undefined;
+    let align = readAlign();
+    for (let attempt = 0; attempt < 4 && (align === "sub" || align === "super" || align === "mixed"); attempt++) {
+      toggled = align === "sub" ? "subscript" : "superscript";
+      call({ op: toggled === "subscript" ? "toggleSubscript" : "toggleSuperscript" });
+      align = readAlign();
+    }
+    call({ op: "moveRight", count: 1 }); // collapse to the right edge
+    this.options.log("plain", { length, verified: align, toggled });
+    return toggled;
   }
 
   onTextInput(handler: (e: EditorInputEvent) => void): Disposable {
@@ -305,8 +458,13 @@ export class DocsAdapter implements EditorAdapter {
     if (!e.isTrusted) return;
     this.flush();
     if (this.composing || e.isComposing || e.key === "Process") {
+      this.pendingNativeStyleRepair = undefined;
       this.buffer.reset("composition");
       return;
+    }
+    // Shift for a capital (or any lone modifier) is still typing, and so is Enter: keep the check armed.
+    if (this.pendingNativeStyleRepair && !MODIFIER_KEYS.has(e.key) && e.key !== "Enter" && !typesCharacter(e)) {
+      this.pendingNativeStyleRepair = undefined;
     }
     const info = { key: e.key, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, altKey: e.altKey };
     if (this.handlers.key.some((h) => h(info))) {
@@ -314,7 +472,79 @@ export class DocsAdapter implements EditorAdapter {
       e.stopImmediatePropagation();
       return;
     }
+    // First character after a native-formatting conversion: type it ourselves and verify its style.
+    if (this.pendingNativeStyleRepair && typesCharacter(e) && this.typeVerified(e.key)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
     this.defer(this.buffer.keyDown(info));
+  }
+
+  /**
+   * Types `ch` at the caret through the bridge (exactly what the key would have typed, so Docs'
+   * own autocorrect sees the same input) and makes sure it is baseline. Returns false, leaving the
+   * key to Docs, if the bridge fails before typing anything.
+   */
+  private typeVerified(ch: string): boolean {
+    const call = (request: BridgeRequest) => {
+      const response = this.bridge(request);
+      if (!response.ok) throw new Error(response.error);
+      return response;
+    };
+    try {
+      call({ op: "insert", text: ch, strategy: this.options.strategy });
+    } catch (error) {
+      this.options.log("caret-style-probe-failed", { error: String(error) });
+      return false;
+    }
+    try {
+      // Verified baseline: done. Unverified (no copy): the keyup check gets one more look.
+      if (this.ensureBaselineGlyph(call)) this.pendingNativeStyleRepair = undefined;
+    } catch (error) {
+      this.options.log("caret-style-probe-failed", { error: String(error) });
+    }
+    return true;
+  }
+
+  /**
+   * Fallback for keys that could not be typed through the bridge (e.g. AltGr characters): some
+   * Docs editor states retain script formatting at the caret. Read back each following glyph and repair it before
+   * the next key can inherit that style.
+   */
+  private handleKeyUp(e: KeyboardEvent): void {
+    const style = this.pendingNativeStyleRepair;
+    if (!e.isTrusted || !style || !typesCharacter(e)) return;
+    this.repairFollowingTextStyle();
+  }
+
+  private repairFollowingTextStyle(): void {
+    if (!this.pendingNativeStyleRepair) return;
+    const call = (request: BridgeRequest) => {
+      const response = this.bridge(request);
+      if (!response.ok) throw new Error(response.error);
+      return response;
+    };
+    try {
+      call({ op: "selectBack", count: 1 });
+      const alignment = verticalAlignOf(call({ op: "copySelectionHtml" }).text);
+      if (alignment === "baseline") {
+        call({ op: "moveRight", count: 1 });
+        this.pendingNativeStyleRepair = undefined;
+        return;
+      }
+      if (alignment === "sub" || alignment === "super") {
+        const toggle = alignment === "sub" ? "toggleSubscript" : "toggleSuperscript";
+        call({ op: toggle });
+        const repaired = verticalAlignOf(call({ op: "copySelectionHtml" }).text);
+        call({ op: "moveRight", count: 1 });
+        if (repaired !== "baseline") return;
+        this.pendingNativeStyleRepair = undefined;
+        return;
+      }
+      call({ op: "moveRight", count: 1 });
+    } catch (error) {
+      this.options.log("following-style-repair-failed", { error: String(error) });
+    }
   }
 
   /** Notify the controller once Docs has applied the key. */
@@ -337,6 +567,7 @@ export class DocsAdapter implements EditorAdapter {
 
   private discontinuity(reason: string): void {
     this.flush();
+    this.pendingNativeStyleRepair = undefined;
     this.buffer.reset(reason);
     this.handlers.selection.forEach((h) => h());
   }

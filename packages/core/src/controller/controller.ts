@@ -1,6 +1,6 @@
 import { CONTEXT_CHARS_BEFORE, boundaryTrigger } from "../engine/text";
 import type { AmperSession, SessionOutcome } from "../history/session";
-import type { AmperSuggestion, AmperTransaction, Disposable, EngineDecision } from "../types";
+import type { AmperSuggestion, AmperTransaction, Disposable, EngineDecision, TailRewrite } from "../types";
 import type { ApplyResult, EditorAdapter, EditorInputEvent, EditorKeyEvent } from "./adapter";
 
 export type ControllerEvent =
@@ -136,7 +136,7 @@ export class AmperController {
     this.syncSuggestions();
   }
 
-  private apply(transaction: AmperTransaction, rewrite: { deleteCount: number; insertText: string }): void {
+  private apply(transaction: AmperTransaction, rewrite: TailRewrite): void {
     this.applying = true;
     const finish = (result: ApplyResult) => {
       this.applying = false;

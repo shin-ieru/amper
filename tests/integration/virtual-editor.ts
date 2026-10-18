@@ -44,8 +44,13 @@ export class VirtualEditor implements EditorAdapter {
   /** Text of every range a rewrite asked to format, in order (hosts with native formatting apply these). */
   formatted: { text: string; style: string }[] = [];
 
-  applyRewrite({ deleteCount, insertText, formatting }: TailRewrite): boolean {
+  /** Every rewrite the controller asked for, in order. */
+  rewrites: TailRewrite[] = [];
+
+  applyRewrite(rewrite: TailRewrite): boolean {
+    const { deleteCount, insertText, formatting } = rewrite;
     if (deleteCount > this.caret) return false;
+    this.rewrites.push(rewrite);
     this.snapshot();
     const at = this.caret - deleteCount;
     this.text = this.text.slice(0, at) + insertText + this.text.slice(this.caret);

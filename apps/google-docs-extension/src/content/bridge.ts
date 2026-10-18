@@ -90,6 +90,12 @@ function handle(request: BridgeRequest): BridgeResponse {
       t.el.dispatchEvent(legacy(new t.win.KeyboardEvent("keyup", init), { keyCode: 188, which: 188 }));
       return { ok: true };
     }
+    case "toggleSuperscript": {
+      const init = { key: ".", code: "Period", metaKey: IS_MAC, ctrlKey: !IS_MAC, bubbles: true, cancelable: true };
+      t.el.dispatchEvent(legacy(new t.win.KeyboardEvent("keydown", init), { keyCode: 190, which: 190 }));
+      t.el.dispatchEvent(legacy(new t.win.KeyboardEvent("keyup", init), { keyCode: 190, which: 190 }));
+      return { ok: true };
+    }
     case "probe":
       if (__AMPER_DEVELOPMENT__) return { ok: true, report: probe() };
       return { ok: false, error: "unsupported operation" };

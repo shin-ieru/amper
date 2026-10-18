@@ -65,7 +65,7 @@ export type StateLabelStyle = "baseline" | "subscript";
 export interface FormatSpan {
   start: number;
   end: number;
-  style: "subscript";
+  style: "subscript" | "superscript";
 }
 
 export const DEFAULT_SETTINGS: AmperSettings = Object.freeze({
@@ -165,6 +165,11 @@ export interface TailRewrite {
   insertText: string;
   /** Optional native formatting within `insertText`; hosts without formatting ignore it. */
   formatting?: FormatSpan[];
+  /**
+   * The text being replaced carries native formatting (a reversed sub/sup conversion) and
+   * `insertText` must end up plain: hosts whose insertions inherit formatting clear it.
+   */
+  plain?: boolean;
 }
 
 /** Spec §7 transaction, plus the caret-relative data reversal needs. */

@@ -10,12 +10,29 @@ const empty = document.getElementById("empty")!;
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}) =>
   Object.assign(document.createElement(tag), props);
 
-/** The output as Google Docs shows it: a state label is rendered as real subscript. */
+/** The output as Google Docs shows it: native scripts are rendered semantically. */
 function renderOutput(entry: ShortcutEntry): HTMLElement {
   const out = el("span", { className: "out" });
   if (entry.stateLabel && entry.output.endsWith(entry.stateLabel)) {
     out.append(entry.output.slice(0, -entry.stateLabel.length), el("sub", { textContent: entry.stateLabel }));
     out.setAttribute("aria-label", `${entry.output}, state label subscripted`);
+  } else if (entry.formatting?.length) {
+    const parts: (string | Node)[] = [];
+    let cursor = 0;
+    for (const span of entry.formatting) {
+      const start = entry.output.indexOf(span.text, cursor);
+      if (start < 0) {
+        out.textContent = entry.output;
+        return out;
+      }
+      const end = start + span.text.length;
+      const tag = span.style === "subscript" ? "sub" : "sup";
+      parts.push(entry.output.slice(cursor, start), el(tag, { textContent: span.text }));
+      cursor = end;
+    }
+    parts.push(entry.output.slice(cursor));
+    out.append(...parts);
+    out.setAttribute("aria-label", `${entry.output}, native ${entry.formatting.map((span) => span.style).join(" and ")} formatting`);
   } else {
     out.textContent = entry.output;
   }
@@ -40,7 +57,9 @@ for (const group of groups) {
   const list = el("ul");
   const rows = group.entries.map((entry) => ({ entry, li: renderRow(entry) }));
   list.append(...rows.map((r) => r.li));
-  section.append(el("h2", { id: `${group.id}-title`, textContent: group.title }), list);
+  section.append(el("h2", { id: `${group.id}-title`, textContent: group.title }));
+  if (group.description) section.append(el("p", { className: "group-note", textContent: group.description }));
+  section.append(list);
   container.append(section);
   nav.append(el("a", { href: `#${group.id}`, textContent: group.title }));
   rendered.push({ group, section, rows });

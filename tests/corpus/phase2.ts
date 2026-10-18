@@ -87,11 +87,21 @@ export const REACTIONS: [string, string][] = [
 /** Must never change automatically in either mode (prose, code, grades, units, dice, versions). */
 export const PHASE2_NEGATIVE_TOKENS = [
   "B+", "C-", "O+", "O-", "V+", "V-", "AB+", "A+", "C++", "C#", "U+2192", "+1", "-5", "5+", "10+",
-  "x^2", "E=mc^2", "2^10", "10^-3", "K^-1", "s^-1", "m^2", "C*", "H2O*", "item(s)", "(s)", "(aq)",
+  "E=mc^2", "C*", "H2O*", "item(s)", "(s)", "(aq)",
   "2(a)", "e-mail", "e-commerce", "COVID-19", "pre-2020", "4-5", "Wi-Fi", "A->B", "x->y", "=>",
   "-->", "<=", "v1.0", "2d6", "1d20", "3+", "H2-rich", "Na-K", "CO2-neutral", "NaCl-based", "^",
   "^^", "+-", "1s", "s2", "sp3", "1x2", "2x4", "^2C", "^400U", "Fe3", "Na1", "F1+", "H1N1+",
   ".5H2O", "CuSO4·", "B2B+", "PS5+", "USB3-", "1s3", "2p7",
+];
+
+/** Superseded by the generic caret-exponent milestone: explicit numeric caret syntax now converts. */
+export const SUPERSEDED_CARET_EXPONENTS: [string, string][] = [
+  ["x^2", "x²"],
+  ["2^10", "2¹⁰"],
+  ["10^-3", "10⁻³"],
+  ["K^-1", "K⁻¹"],
+  ["s^-1", "s⁻¹"],
+  ["m^2", "m²"],
 ];
 
 /** Arrow-shaped prose: may be offered as a suggestion, never applied automatically. */

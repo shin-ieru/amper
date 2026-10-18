@@ -169,7 +169,7 @@ test("View all shortcuts opens the searchable reference", async ({ context, popu
   const reference = await opened;
   await reference.waitForLoadState();
   expect(reference.url()).toMatch(/reference\.html$/);
-  await expect(reference.locator("h2")).toHaveText(["Greek", "Reaction arrows", "Formulas & charges", "States", "Scientific symbols"]);
+  await expect(reference.locator("h2")).toHaveText(["Greek", "Reaction arrows", "Formatting shortcuts", "Formulas & charges", "States", "Scientific symbols"]);
 });
 
 test.describe("reference page", () => {
@@ -187,8 +187,49 @@ test.describe("reference page", () => {
     await expect(page.locator("#arrows li", { has: page.locator("kbd", { hasText: /^<->$/ }) })).toContainText("⇄");
   });
 
+  test("Formatting shortcuts explains explicit commands and renders native scripts", async ({ page }) => {
+    const section = page.locator("#formatting");
+    await expect(section.locator("h2")).toHaveText("Formatting shortcuts");
+    await expect(section.locator(".group-note")).toContainText("without guessing");
+    await expect(section.locator(".group-note")).toContainText("inline fraction");
+    await expect(section).toContainText("Compound fractions remain inline so inner superscript and subscript formatting can be preserved");
+    await expect(section.locator("li", { has: page.locator("kbd", { hasText: /^x sup\(2\)$/ }) }).locator("sup")).toHaveText("2");
+    await expect(section.locator("li", { has: page.locator("kbd", { hasText: /^V sub\(max\)$/ }) }).locator("sub")).toHaveText("max");
+    await expect(section.locator("kbd", { hasText: /degK/i })).toHaveCount(0);
+    await expect(section.locator(".badge.recommended")).toHaveCount(3);
+    await expect(page.locator("main")).not.toContainText("°K");
+  });
+
   test("state labels are shown as real subscript", async ({ page }) => {
     await expect(page.locator("#states sub")).toHaveText(["(l)", "(g)", "(aq)", "(s)"]);
+  });
+
+  test("the reference lists exact explicit underscore subscript examples", async ({ page }) => {
+    for (const [typed, output] of [["x_2", "x₂"], ["x_12", "x₁₂"], ["V_max", "Vₘₐₓ"], ["x_-1", "x₋₁"]] as const) {
+      const row = page.locator("#formatting li").filter({ has: page.locator("kbd").getByText(typed, { exact: true }) });
+      await expect(row).toContainText(output);
+    }
+  });
+
+  test("the reference renders arbitrary native subscript and superscript phrases", async ({ page }) => {
+    const subscript = page.locator("#formatting li", { has: page.locator("kbd", { hasText: /^x_\(max\)$/ }) });
+    const superscript = page.locator("#formatting li", { has: page.locator("kbd", { hasText: /^x\^\(effective\)$/ }) });
+    await expect(subscript.locator(".out sub")).toHaveText("max");
+    await expect(superscript.locator(".out sup")).toHaveText("effective");
+  });
+
+  test("the reference shows bare fractions as Tab suggestions with native scripts and a baseline fraction slash", async ({ page }) => {
+    const fraction = page.locator("#formatting li", { has: page.locator("kbd", { hasText: /^x\/y$/ }) });
+    await expect(fraction.locator(".out")).toHaveText("x⁄y");
+    await expect(fraction.locator(".out sup")).toHaveText("x");
+    await expect(fraction.locator(".out sub")).toHaveText("y");
+    await expect(fraction.locator(".meta")).toContainText("Tab to accept");
+    await expect(fraction).toContainText("suggestion");
+
+    const integerFraction = page.locator("#formatting li", { has: page.locator("kbd", { hasText: /^12\/24$/ }) });
+    await expect(integerFraction.locator(".out")).toHaveText("12⁄24");
+    await expect(integerFraction.locator(".out sup")).toHaveText("12");
+    await expect(integerFraction.locator(".out sub")).toHaveText("24");
   });
 
   test("search filters across groups, is case-insensitive, and reports no matches", async ({ page }) => {
@@ -203,7 +244,7 @@ test.describe("reference page", () => {
     await expect(page.locator("#empty")).toBeVisible();
     await expect(page.locator("section:visible")).toHaveCount(0);
     await search.press("Escape");
-    await expect(page.locator("section:visible")).toHaveCount(5);
+    await expect(page.locator("section:visible")).toHaveCount(6);
   });
 
   test("/ focuses search", async ({ page }) => {

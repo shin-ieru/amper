@@ -8,6 +8,8 @@ interface SymbolEntry {
   mode?: "auto" | "suggest";
   guards?: RuleGuard[];
   completeFromChars?: number;
+  /** Match the typed text exactly ("lte" yes, "LTE" the mobile standard no). */
+  caseSensitive?: boolean;
   /** Why this entry deviates from a plain auto rule; kept next to the data for reviewers. */
   note?: string;
 }
@@ -17,7 +19,10 @@ interface SymbolEntry {
  * the canonical arrow table so they always match the reaction parser.
  */
 const SYMBOLS: SymbolEntry[] = [
-  { id: "plus-minus", patterns: ["plus minus", "plus-minus"], replacement: "±" },
+  // Compact one-word aliases join their canonical rule. Audited against prose: "pm" (3 pm) and "mp"
+  // (MP, mp3) are deliberately absent, as are English words (therefore, because, partial, integral,
+  // sum, product, times, dot), which stay behind their "... symbol" phrases.
+  { id: "plus-minus", patterns: ["plus minus", "plus-minus", "plusminus"], replacement: "±" },
   {
     id: "plus-or-minus",
     patterns: ["plus or minus"],
@@ -25,7 +30,7 @@ const SYMBOLS: SymbolEntry[] = [
     mode: "suggest",
     note: "Common in spoken-style prose (\"five plus or minus two\").",
   },
-  { id: "minus-plus", patterns: ["minus plus", "minus-plus"], replacement: "∓" },
+  { id: "minus-plus", patterns: ["minus plus", "minus-plus", "minusplus"], replacement: "∓" },
   {
     id: "approximately-equal",
     patterns: ["approximately equal", "approximately equals", "approximately equal to"],
@@ -34,7 +39,7 @@ const SYMBOLS: SymbolEntry[] = [
   },
   {
     id: "not-equal",
-    patterns: ["not equal", "not equals", "not equal to"],
+    patterns: ["not equal", "not equals", "not equal to", "neq"],
     replacement: "≠",
     guards: ["after-copula"],
   },
@@ -50,11 +55,28 @@ const SYMBOLS: SymbolEntry[] = [
     replacement: "≥",
     guards: ["after-copula"],
   },
-  { id: "proportional-to", patterns: ["proportional to"], replacement: "∝", guards: ["after-copula"] },
+  { id: "proportional-to", patterns: ["proportional to", "propto"], replacement: "∝", guards: ["after-copula"] },
   { id: "infinity", patterns: ["infinity symbol", "infinity sign"], replacement: "∞" },
   { id: "therefore", patterns: ["therefore symbol", "therefore sign"], replacement: "∴" },
   { id: "because", patterns: ["because symbol", "because sign"], replacement: "∵" },
   { id: "degree", patterns: ["degree symbol", "degree sign", "degrees symbol"], replacement: "°" },
+  // Lowercase only: "LTE"/"GTE" are a mobile standard and a company name.
+  { id: "less-than-or-equal-short", patterns: ["lte"], replacement: "≤", caseSensitive: true },
+  { id: "greater-than-or-equal-short", patterns: ["gte"], replacement: "≥", caseSensitive: true },
+  {
+    id: "approx-short",
+    patterns: ["approx"],
+    replacement: "≈",
+    mode: "suggest",
+    note: "\"approx 5 g\" and \"approx.\" are common prose abbreviations: offered, not applied.",
+  },
+  {
+    id: "infinity-short",
+    patterns: ["inf"],
+    replacement: "∞",
+    mode: "suggest",
+    note: "\"inf\" is also the infimum in mathematics: offered, not applied.",
+  },
   {
     id: "angstrom",
     patterns: ["angstrom", "ångström"],
@@ -75,13 +97,42 @@ const SYMBOLS: SymbolEntry[] = [
   { id: "partial-symbol", patterns: ["partial derivative symbol", "partial symbol"], replacement: "∂" },
   { id: "middle-dot", patterns: ["middle dot", "center dot", "centre dot", "centered dot", "centred dot"], replacement: "·" },
   { id: "multiplication", patterns: ["multiplication sign", "multiplication symbol", "times sign", "times symbol"], replacement: "×" },
-  { id: "square-root", patterns: ["square root symbol", "square root sign", "root symbol"], replacement: "√" },
+  { id: "square-root", patterns: ["square root symbol", "square root sign", "root symbol", "sqrt"], replacement: "√" },
   { id: "integral", patterns: ["integral symbol", "integral sign"], replacement: "∫" },
   // ∑ (U+2211) and ∏ (U+220F) are the n-ary operators, not the Greek letters Σ and Π.
   { id: "summation", patterns: ["summation symbol", "summation sign", "sum symbol"], replacement: "∑" },
   { id: "product", patterns: ["product symbol", "product sign"], replacement: "∏" },
   // Arrows come from the canonical table in @amper/chemistry (see arrowRules below).
 ];
+
+/**
+ * Explicit temperature shortcuts. Bare C, F and K are never converted (carbon,
+ * fluorine, potassium/kelvin). Kelvin takes no degree sign in SI, so there is no
+ * degK shortcut: users type "298 K" directly. Unit names in prose are only offered.
+ */
+export const TEMPERATURE_RULE_PREFIX = "symbol.temperature.";
+
+export function temperatureRules(): NamedRule[] {
+  const rule = (id: string, pattern: string, replacement: string, mode: "auto" | "suggest" = "auto"): NamedRule => ({
+    id: `${TEMPERATURE_RULE_PREFIX}${id}`,
+    category: "symbol",
+    label: pattern,
+    patterns: [pattern],
+    replacement,
+    mode,
+    priority: PRIORITY.namedSymbol,
+    confidence: mode === "auto" ? 1 : 0.85,
+    noCompletion: mode === "auto",
+  });
+  return [
+    rule("deg", "deg", "°"),
+    rule("celsius-short", "degC", "°C"),
+    rule("fahrenheit-short", "degF", "°F"),
+    rule("celsius", "celsius", "°C", "suggest"),
+    rule("fahrenheit", "fahrenheit", "°F", "suggest"),
+    rule("kelvin", "kelvin", "K", "suggest"),
+  ];
+}
 
 /** Natural-language arrow aliases, one rule per arrow kind, from the canonical table. */
 export function arrowRules(): NamedRule[] {
@@ -110,7 +161,8 @@ export function symbolRules(): NamedRule[] {
     confidence: entry.mode === "suggest" ? 0.85 : 1,
     ...(entry.guards && { guards: entry.guards }),
     ...(entry.completeFromChars !== undefined && { completeFromChars: entry.completeFromChars }),
-  })), ...arrowRules()];
+    ...(entry.caseSensitive && { caseSensitive: true }),
+  })), ...temperatureRules(), ...arrowRules()];
 }
 
 const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";

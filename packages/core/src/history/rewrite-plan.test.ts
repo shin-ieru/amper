@@ -24,6 +24,21 @@ describe("planRewrite", () => {
     expect(p.insertText).toBe("😃");
   });
 
+  it("can avoid a pure deletion for hosts that delete by typing over a selection", () => {
+    expect(planRewrite("25xyzC ", { deleteCount: 7, insertText: "25C " })).toEqual({ keepSuffix: "C ", deleteText: "xyz", insertText: "" });
+    expect(planRewrite("25xyzC ", { deleteCount: 7, insertText: "25C " }, { nonEmptyInsert: true })).toEqual({ keepSuffix: " ", deleteText: "xyzC", insertText: "C" });
+    expect(planRewrite("ab", { deleteCount: 2, insertText: "a" }, { nonEmptyInsert: true })).toEqual({ keepSuffix: "", deleteText: "ab", insertText: "a" });
+    fc.assert(
+      fc.property(fc.string({ maxLength: 20 }), fc.string({ maxLength: 20 }), (removed, inserted) => {
+        const p = planRewrite(removed, { deleteCount: removed.length, insertText: inserted }, { nonEmptyInsert: true });
+        if (p.deleteText && inserted) expect(p.insertText).not.toBe("");
+        const doc = Array.from(removed);
+        const head = doc.slice(0, doc.length - Array.from(p.keepSuffix).length - Array.from(p.deleteText).length).join("");
+        expect(head + p.insertText + p.keepSuffix).toBe(inserted);
+      }),
+    );
+  });
+
   it("reconstructs the intended result for any input", () => {
     fc.assert(
       fc.property(fc.string({ maxLength: 20 }), fc.string({ maxLength: 20 }), fc.string({ maxLength: 10 }), (removed, inserted, before) => {

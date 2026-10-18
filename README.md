@@ -1,6 +1,6 @@
 # Amper
 
-Chemistry autocorrect and autocomplete for Google Docs. Type `h2so4`, `SO4^2-`, `sigma`, `capital sigma`, `N2 + 3H2 equi 2NH3` or `H2O(l)` and Amper writes `H₂SO₄`, `SO₄²⁻`, `σ`, `Σ`, `N₂ + 3H₂ ⇌ 2NH₃` and H₂O with a subscripted (l), all as ordinary editable text. (`<=>` also gives ⇌ for power users; `<->` gives ⇄.) Press Backspace straight after a conversion to get back exactly what you typed.
+Chemistry autocorrect and autocomplete for Google Docs. Type `h2so4`, `SO4^2-`, `x^2`, `x_12`, `V_max`, `frac(x/y)`, `sigma`, `capital sigma`, `N2 + 3H2 equi 2NH3` or `H2O(l)` and Amper writes `H₂SO₄`, `SO₄²⁻`, `x²`, `x₁₂`, `Vₘₐₓ`, `x⁄y`, `σ`, `Σ`, `N₂ + 3H₂ ⇌ 2NH₃` and H₂O with a subscripted (l). For fractions, the numerator and denominator are ordinary editable letters with native Docs superscript and subscript formatting; the fraction slash stays at baseline. For arbitrary script text, type `x_(max)` or `x^(effective)` to get visible `xmax` or `xeffective` with native Docs subscript or superscript formatting. (`<=>` also gives ⇌ for power users; `<->` gives ⇄.) Press Backspace straight after a conversion to get back exactly what you typed.
 
 Everything runs locally and deterministically. No document text leaves the device.
 
@@ -22,9 +22,18 @@ Everything runs locally and deterministically. No document text leaves the devic
 **States**
 - `(s)` `(l)` `(g)` `(aq)` are rendered with Google Docs native subscript. Following text stays normal.
 
+**Scientific notation**
+- `x^2`, `x_12`, and `10^-3` use exact Unicode script characters.
+- A bare `x/y`, `5/4` or `12/24` is only offered as a suggestion (Tab accepts), because slashes are common in prose (`24/7`, `50/50`, `y/n`). Accepting uses native Docs formatting on the original operands; `⁄` stays at baseline. `frac(x/y)` does the same automatically. Greek slash pairs stay literal until their real Docs typing path can be verified reliably.
+- `x_(max)` and `x^(effective)` use native Docs formatting for arbitrary phrases; punctuation and spaces inside the delimiters are preserved, and text after the phrase returns to baseline.
+
 **Reactions**
 - `2H2 + O2 -> 2H2O` → 2H₂ + O₂ → 2H₂O. Each species is parsed independently, keeping coefficients, states, charges and electrons (`e-`).
 - Arrows: `equi` (primary), `<=>` and `equilibrium arrow` → ⇌; `->` → →; `<-` → ←; `<->` → ⇄.
+
+**Formatting shortcuts**
+- `x sup(2)` and `V sub(max)` apply native superscript and subscript to any text (`E sup(activation energy)`); the one space before the command is removed so the script attaches to the word. `frac(x/y)` and `frac(12/24)` make fractions, and so do compound operands such as `frac(P sub(0.5 atm) / P sub(1 bar))`. These are inline fractions, not stacked ones, and the spacing around `/` is kept as typed. Compound fractions remain at baseline so their inner superscript and subscript formatting can be preserved. These are the recommended forms: use explicit shortcuts when you want Amper to format something without guessing. `^`, `_` and bare `/` are compact alternatives.
+- `deg`, `degC`, `degF` → °, °C, °F (also `25degC`). Kelvin has no shortcut: type `298 K` (no degree sign).
 
 **Interaction**
 - Converts at Space, Enter, `,` `;` `:` `!` `?`, with no Tab needed.
@@ -42,7 +51,7 @@ Everything runs locally and deterministically. No document text leaves the devic
 - **Some Undo and formatting behaviour depends on Google Docs.** A conversion with a subscript state label can take more than one Undo step. Docs' own automatic substitutions and auto-capitalisation run alongside Amper (handled, but host-dependent).
 - **Bare Greek names convert in prose too** ("the sigma level" → "the σ level", "ETA" → η). Use Backspace, or add the word to the never-convert list.
 - **Not yet recorded in an editable Doc:** lists, tables, pageless documents, Suggesting mode, collaboration, IME input and screen readers (see [docs/google-docs-spike.md](docs/google-docs-spike.md)).
-- **Amper converts only what it sees you type.** Clicking back into an existing word and pressing Space does not convert it.
+- **Amper converts only what it sees you type.** Clicking back into an existing word and pressing Space does not convert it. Characters that arrive without a key press (pasted text, or `°` from the Character Viewer or emoji picker) are not tracked either, so a shortcut containing them is left unchanged. Typing `°` from the keyboard (⌥⇧8 on a Mac) works.
 - **Not part of v0.1.0:** reaction conditions (`->[heat]`), equation balancing, molecular structures, radicals, hybridisation (`sp3`), units, `D`/`T` symbols, and unspaced reactions (`2H2+O2->2H2O`).
 
 ## Requirements

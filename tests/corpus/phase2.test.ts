@@ -14,6 +14,7 @@ import {
   REACTIONS,
   STATE_BASES,
   STATES,
+  SUPERSEDED_CARET_EXPONENTS,
 } from "./phase2";
 
 // ---- Independent oracles (string arithmetic on curated, known-valid input) ----
@@ -208,4 +209,18 @@ describe("Phase 2 negative corpus", () => {
       }
     }
   });
+});
+
+describe("generic caret superscript corpus (supersedes prior negative examples)", () => {
+  for (const mode of ["standard", "chemistry"] as const) {
+    it(`converts explicit numeric exponents and restores them in ${mode} mode`, () => {
+      for (const [input, expected] of SUPERSEDED_CARET_EXPONENTS) {
+        const { editor } = setup({ mode });
+        editor.type(`${input} `);
+        expect(editor.text, `${input} (${mode})`).toBe(`${expected} `);
+        editor.press("Backspace");
+        expect(editor.text, `restore ${input} (${mode})`).toBe(input);
+      }
+    });
+  }
 });

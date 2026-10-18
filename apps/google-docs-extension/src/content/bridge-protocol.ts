@@ -18,12 +18,14 @@ export type BridgeRequest =
   | { op: "selectBack"; count: number }
   /** Reads the current selection through a synthetic copy event; never touches the system clipboard. */
   | { op: "copySelection" }
-  /** Same, but returns Docs' text/html, whose spans carry vertical-align (baseline/sub). */
+  /** Same, but returns Docs' text/html, whose spans carry vertical-align (baseline/sub/super). */
   | { op: "copySelectionHtml" }
   | { op: "selectForward"; count: number }
   | { op: "insert"; text: string; strategy: InsertStrategy }
   /** Docs' native subscript toggle (⌘/Ctrl + ,) on the current selection. Experimental. */
   | { op: "toggleSubscript" }
+  /** Docs' native superscript toggle (⌘/Ctrl + .) on the current selection. Experimental. */
+  | { op: "toggleSuperscript" }
   | { op: "probe" };
 
 export type BridgeResponse =

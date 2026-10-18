@@ -14,6 +14,8 @@ import type {
 import { completePhrase, fuzzyPhrase } from "./complete";
 import { recognizeElectronConfiguration } from "./recognizers/electron";
 import { recognizeReaction } from "./recognizers/reaction";
+import { openExplicitCommand, recognizeExplicitCommand, recognizeNumericTemperature } from "./recognizers/explicit-commands";
+import { recognizeScientificNotation } from "./recognizers/scientific-notation";
 import { recognizeSpecies } from "./recognizers/species";
 import { recognizeNamed } from "./recognizers/named";
 import { CONTEXT_CHARS_BEFORE, lineStart } from "./text";
@@ -83,9 +85,19 @@ export function createEngine(options: EngineOptions = {}): AmperEngine {
     const never = new Set(settings.neverConvert.map(normalizePhrase));
     const frozen = input.frozen ?? EMPTY;
 
+    // Inside an unclosed sup(/sub(/frac( command the content is literal: no rule may touch it.
+    const openCommand = openExplicitCommand(text, from);
+    if (openCommand) {
+      rejections.push({ recognizer: "named", candidate: `${openCommand}(`, reason: `inside an open ${openCommand}(...) command: content stays literal` });
+      return { action: "none", debug: debug([]) };
+    }
+
     const all = [
+      ...recognizeExplicitCommand(text, from, rejections),
+      ...recognizeNumericTemperature(text, from, rejections),
       ...recognizeNamed(text, from, registry, rejections),
       ...recognizeSpecies(text, from, settings.mode, rejections, settings.stateLabels),
+      ...recognizeScientificNotation(text, from, rejections, registry, enabled.greek),
       ...(enabled.electron ? recognizeElectronConfiguration(text, from, settings.mode, frozen) : []),
       ...(enabled.reaction ? recognizeReaction(text, from, settings.mode, rejections, frozen, settings.stateLabels) : []),
     ];
@@ -132,6 +144,7 @@ export function createEngine(options: EngineOptions = {}): AmperEngine {
   function complete(textBefore: string, settings: AmperSettings): AmperSuggestion[] {
     if (!settings.enabled || !settings.autocomplete) return [];
     const { text, offset, from } = contextWindow(textBefore);
+    if (openExplicitCommand(text, from)) return [];
     const never = new Set(settings.neverConvert.map(normalizePhrase));
     return completePhrase(text, from, registryFor(settings), settings.categories)
       .filter((s) => !never.has(normalizePhrase(s.original)))

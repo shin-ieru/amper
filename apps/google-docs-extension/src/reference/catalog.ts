@@ -7,7 +7,7 @@
  * entry does not do exactly what it shows.
  */
 import { ARROW_DEFINITIONS, arrowGlyph } from "@amper/chemistry";
-import { createDefaultRegistry, GREEK_LETTERS, GREEK_VARIANTS, scriptCommandRules, symbolRules } from "@amper/rules";
+import { createDefaultRegistry, GREEK_LETTERS, GREEK_VARIANTS, scriptCommandRules, symbolRules, TEMPERATURE_RULE_PREFIX } from "@amper/rules";
 
 export interface ShortcutEntry {
   /** What the user types. */
@@ -19,6 +19,8 @@ export interface ShortcutEntry {
   hint?: string;
   /** The output ends in a state label that Google Docs shows as subscript. */
   stateLabel?: string;
+  /** Visible substrings shown with native Google Docs script formatting. */
+  formatting?: readonly { text: string; style: "subscript" | "superscript" }[];
   /** How to exercise it when it only converts in context (e.g. "->" after a formula). */
   example?: { type: string; result: string };
   /** Extra search terms (e.g. "equilibrium" for "<=>"). */
@@ -26,8 +28,10 @@ export interface ShortcutEntry {
 }
 
 export interface ShortcutGroup {
-  id: "greek" | "arrows" | "formulas" | "states" | "symbols";
+  id: "greek" | "arrows" | "formatting" | "formulas" | "states" | "symbols";
   title: string;
+  /** One line shown under the heading. */
+  description?: string;
   entries: ShortcutEntry[];
 }
 
@@ -102,6 +106,45 @@ const FORMULAS: ShortcutEntry[] = [
   { input: "O2+", output: "O₂⁺", badge: "suggestion", hint: "ambiguous: also O²⁺" },
 ];
 
+/** Explicit formatting: the user states intent, so Amper never has to guess. */
+const FORMATTING: ShortcutEntry[] = [
+  { input: "x sup(2)", output: "x2", formatting: [{ text: "2", style: "superscript" }], badge: "recommended", hint: "any text: x sup(n+1), E sup(activation energy)" },
+  { input: "V sub(max)", output: "Vmax", formatting: [{ text: "max", style: "subscript" }], badge: "recommended", hint: "any text: H sub(formation of methane)" },
+  {
+    input: "frac(x/y)",
+    output: "x⁄y",
+    formatting: [{ text: "x", style: "superscript" }, { text: "y", style: "subscript" }],
+    badge: "recommended",
+    hint: "inline fraction; any operands: frac(12/24), frac(dx/dt), frac(1.5/2). Spacing around / is kept",
+  },
+  {
+    input: "frac(P sub(0.5 atm) / P sub(1 bar))",
+    output: "P0.5 atm ⁄ P1 bar",
+    formatting: [{ text: "0.5 atm", style: "subscript" }, { text: "1 bar", style: "subscript" }],
+    hint: "Compound fractions remain inline so inner superscript and subscript formatting can be preserved",
+    keywords: ["compound fraction", "ratio"],
+  },
+  { input: "deg", output: "°" },
+  { input: "degC", output: "°C", keywords: ["celsius", "temperature"] },
+  { input: "degF", output: "°F", keywords: ["fahrenheit", "temperature"] },
+  { input: "25degC", output: "25°C", hint: "also 72degF, -20degC, 36.5degC", keywords: ["temperature"] },
+  { input: "celsius", output: "°C", badge: "suggestion", keywords: ["temperature"] },
+  { input: "fahrenheit", output: "°F", badge: "suggestion", keywords: ["temperature"] },
+  { input: "kelvin", output: "K", badge: "suggestion", keywords: ["temperature"] },
+  // Compact alternatives (power users). Bare a/b is only offered: slashes are common in prose.
+  { input: "x^2", output: "x²", badge: "alternative", hint: "^ makes a superscript", keywords: ["x sup(2) is recommended"] },
+  { input: "x/y", output: "x⁄y", formatting: [{ text: "x", style: "superscript" }, { text: "y", style: "subscript" }], hint: "Tab to accept; frac(x/y) formats automatically", badge: "suggestion", keywords: ["frac(x/y) is recommended"] },
+  { input: "12/24", output: "12⁄24", formatting: [{ text: "12", style: "superscript" }, { text: "24", style: "subscript" }], hint: "Tab to accept; frac(12/24) formats automatically", badge: "suggestion", keywords: ["frac(12/24) is recommended"] },
+  { input: "x_2", output: "x₂", hint: "_ makes a subscript", badge: "alternative", keywords: ["sub(...) is recommended"] },
+  { input: "x_12", output: "x₁₂" },
+  { input: "a_0", output: "a₀" },
+  { input: "x_-1", output: "x₋₁" },
+  { input: "V_max", output: "Vₘₐₓ" },
+  { input: "x_β", output: "xᵦ" },
+  { input: "x_(max)", output: "xmax", formatting: [{ text: "max", style: "subscript" }], hint: "_(...) applies native subscript formatting", badge: "alternative", keywords: ["x sub(max) is recommended"] },
+  { input: "x^(effective)", output: "xeffective", formatting: [{ text: "effective", style: "superscript" }], hint: "^(...) applies native superscript formatting", badge: "alternative", keywords: ["x sup(effective) is recommended"] },
+];
+
 const STATES: ShortcutEntry[] = [
   { input: "H2O(l)", output: "H₂O(l)", stateLabel: "(l)" },
   { input: "CO2(g)", output: "CO₂(g)", stateLabel: "(g)" },
@@ -112,10 +155,17 @@ const STATES: ShortcutEntry[] = [
 function symbols(): ShortcutEntry[] {
   const registry = createDefaultRegistry();
   const entries: ShortcutEntry[] = [];
-  for (const rule of symbolRules().filter((r) => !r.id.startsWith("symbol.arrow."))) {
+  for (const rule of symbolRules().filter((r) => !r.id.startsWith("symbol.arrow.") && !r.id.startsWith(TEMPERATURE_RULE_PREFIX))) {
     // Show a spelling that converts on its own ("not equals", not "not equal", which waits for "to").
-    const input = rule.patterns.find((p) => !registry.canGrow(p)) ?? rule.patterns[0]!;
-    entries.push({ input, output: rule.replacement, ...(rule.mode === "suggest" && { badge: "suggestion" as const }) });
+    const input = rule.patterns.find((p) => !registry.canGrow(p) && /\s/.test(p)) ?? rule.patterns.find((p) => !registry.canGrow(p)) ?? rule.patterns[0]!;
+    // One-word aliases of the same rule ("neq" for "not equals") are listed as a hint, and searchable.
+    const aliases = rule.patterns.filter((p) => p !== input && /^[a-z]+$/.test(p));
+    entries.push({
+      input,
+      output: rule.replacement,
+      ...(rule.mode === "suggest" && { badge: "suggestion" as const }),
+      ...(aliases.length > 0 && { hint: `also ${aliases.join(", ")}` }),
+    });
   }
   for (const rule of scriptCommandRules()) entries.push({ input: rule.patterns[0]!, output: rule.replacement });
   return entries;
@@ -125,6 +175,12 @@ export function shortcutGroups(): ShortcutGroup[] {
   return [
     { id: "greek", title: "Greek", entries: greek() },
     { id: "arrows", title: "Reaction arrows", entries: arrows() },
+    {
+      id: "formatting",
+      title: "Formatting shortcuts",
+      description: "Use explicit shortcuts when you want Amper to format something without guessing. frac(...) makes an inline fraction, not a stacked one. Compact ^ and _ forms also work; a bare x/y is only offered as a suggestion.",
+      entries: FORMATTING,
+    },
     { id: "formulas", title: "Formulas & charges", entries: FORMULAS },
     { id: "states", title: "States", entries: STATES },
     { id: "symbols", title: "Scientific symbols", entries: symbols() },

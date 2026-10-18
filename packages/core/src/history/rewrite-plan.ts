@@ -22,6 +22,11 @@ export interface PlanOptions {
   maxKeepSuffix?: number;
   /** Do not skip unchanged leading characters. */
   noPrefix?: boolean;
+  /**
+   * Hosts that delete by typing over a selection need something to type: when only a
+   * deletion remains ("25xyzC " → "25C "), re-insert one unchanged neighbouring character.
+   */
+  nonEmptyInsert?: boolean;
 }
 
 export function planRewrite(removedTail: string, rewrite: TailRewrite, options: PlanOptions = {}): RewritePlan {
@@ -44,6 +49,10 @@ export function planRewrite(removedTail: string, rewrite: TailRewrite, options: 
     removed[prefix] === inserted[prefix]
   ) {
     prefix++;
+  }
+  if (options.nonEmptyInsert && inserted.length - prefix - suffix === 0 && removed.length - prefix - suffix > 0) {
+    if (suffix > 0) suffix--;
+    else if (prefix > 0) prefix--;
   }
   return {
     keepSuffix: removed.slice(removed.length - suffix).join(""),

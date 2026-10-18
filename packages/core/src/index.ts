@@ -2,6 +2,14 @@ export * from "./types";
 export { createEngine, recognitionToSuggestion, type AmperEngine, type EngineOptions, type EvaluateInput } from "./engine/engine";
 export { completePhrase, fuzzyPhrase, withinOneEdit } from "./engine/complete";
 export {
+  CARET_SUPERSCRIPT_TABLE,
+  EXPLICIT_SUBSCRIPT_TABLE,
+  FRACTION_GREEK_VARIABLES,
+  FRACTION_NUMERIC_DIGITS,
+  FRACTION_LATIN_VARIABLES,
+  FRACTION_SLASH_PROTECTED_PAIRS,
+} from "./engine/recognizers/scientific-notation";
+export {
   boundaryTrigger,
   CONTEXT_CHARS_AFTER,
   CONTEXT_CHARS_BEFORE,

@@ -1,4 +1,4 @@
-# Species, reaction and configuration parsers
+# Species, notation, reaction and configuration parsers
 
 `@amper/chemistry` parses notation into ASTs; `@amper/renderer` renders them; `@amper/core/confidence` scores them. No module guesses intent silently: the parser records what was written, `charges.ts` lists the readings, and the policy decides between autocorrect, suggestion and nothing.
 
@@ -90,6 +90,16 @@ A lone element with a count is usually an identifier (`U2`, `B12`, `K9`), so the
 - A run of two or more orbitals, or a core plus one orbital, converts in Chemistry Mode.
 - A single orbital (`3d6`, which is also dice notation) is only offered.
 - Duplicate subshells break a run.
+
+## Generic scientific shorthand
+
+The core notation recognizer shares the engine's safe-boundary, priority and reversible rewrite pipeline. A caret followed by an optional leading sign and one or more ASCII digits maps exactly to Unicode superscript characters: `x^2` → `x²`, `x^12` → `x¹²`, `10^-3` → `10⁻³`. The canonical character table is `0–9`, `+`, `-`. An explicit chemistry charge or isotope remains owned by the species parser (`SO4^2-` → SO₄²⁻; `^14C` → ¹⁴C). Electron-configuration runs remain owned by their existing recognizer.
+
+An explicit underscore maps a supported subscript after one letter base: `x_2` → `x₂`, `x_12` → `x₁₂`, `x_-1` → `x₋₁`, `V_max` → `Vₘₐₓ`. Its canonical table covers digits `0–9`, signs `+ -`, lowercase Latin `a e h i j k l m n o p r s t u v x`, schwa `ə`, and Greek `β γ ρ φ χ`. These characters have standardized Unicode subscript forms. Other letters, uppercase suffixes and mixed letter/number suffixes remain literal. Identifier shapes, code/markup, URLs and paths stay protected. Formula parsing still handles ordinary `H2SO4` without underscore syntax.
+
+Parenthesized explicit scripts handle arbitrary text without Unicode approximation: `x_(max)` leaves visible `xmax` and formats `max` with native Docs subscript; `x^(effective)` formats `effective` with native Docs superscript. Spaces and punctuation inside the parentheses are part of the formatted range. `DeltaH_(formation of methane)` also applies the existing `Delta` → `Δ` Greek-name rule to the base. The delimiters are removed, following text returns to baseline, and immediate Backspace restores the exact input. Empty or unbalanced delimiters, code, markup, URLs, paths and label contexts are left alone. These rules carry a `FormatSpan`; the Docs adapter uses the native subscript/superscript shortcuts, reads the selected range back as clipboard HTML, and repairs formatting that leaks onto the boundary. The shortcut reference includes `x_(max)` and `x^(effective)`.
+
+The simple fraction rule accepts exactly one atomic operand on each side of one `/`: an ASCII integer digit sequence or a single lowercase Latin variable. It therefore handles integer/integer (`12/24`), variable/variable (`x/y`), integer/variable (`3/y`), and variable/integer (`x/2`) forms. A bare match is a **suggestion only** (confidence 0.85): it is offered for Tab and never rewritten at a boundary, because one-slash tokens are common in prose (`24/7`, `50/50`, `9/11`, `y/n`, `h/w`). `frac(…)` converts automatically and accepts compound operands, including inner `sup(…)`/`sub(…)` (see `docs/rules.md`, *Compound fractions*). Multi-slash dates such as `2026/10/06` remain literal. The renderer keeps both operands as ordinary text, replaces `/` with the U+2044 fraction slash at baseline, and applies native Docs superscript to the entire numerator and subscript to the entire denominator. It does not use precomposed fraction glyphs, Unicode script approximations, or equation objects. Greek symbols, decimals, multi-letter identifiers, and operands outside those atomic classes remain literal. URLs, paths, `and/or`, `n/a`, common slash labels, code/markup, identifiers, and units such as `km/h` and `m/s` are protected. The false-positive corpus is in `tests/corpus/scientific-notation.ts`; operand-class, boundary, formatting-span and restore coverage is in `tests/integration/families.test.ts`.
 
 ## Case recovery
 
